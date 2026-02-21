@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  channels-collection-manager:
+    build: .
+    container_name: channels-collection-manager
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      # URL to your Channels DVR server
+      - DVR_URL=http://192.168.1.100:8089
+      
+      # Sync interval in minutes (default: 60)
+      - SYNC_INTERVAL_MINUTES=60
+      
+      # Optional: Set a secret key for Flask sessions
+      - SECRET_KEY=change-this-to-something-random
+    
+    volumes:
+      # Persist configuration
+      - ./config:/config
+    
+    networks:
+      - channels-net
+
+networks:
+  channels-net:
+    driver: bridge

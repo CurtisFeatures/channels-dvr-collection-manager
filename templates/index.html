@@ -1,0 +1,1515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Channels DVR Collection Manager</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background: #2c3e50;
+            color: white;
+            padding: 20px 0;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        header h1 {
+            font-size: 28px;
+            font-weight: 600;
+        }
+        
+        .status-bar {
+            background: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .status-label {
+            font-weight: 600;
+            color: #666;
+        }
+        
+        .status-value {
+            color: #2c3e50;
+        }
+        
+        .btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+        
+        .btn:hover {
+            background: #2980b9;
+        }
+        
+        .btn-success {
+            background: #27ae60;
+        }
+        
+        .btn-success:hover {
+            background: #229954;
+        }
+        
+        .btn-danger {
+            background: #e74c3c;
+        }
+        
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+        
+        .btn-secondary {
+            background: #95a5a6;
+        }
+        
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+        
+        .rules-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+        
+        .section-header h2 {
+            font-size: 22px;
+            color: #2c3e50;
+        }
+        
+        .rule-card {
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 15px;
+            transition: box-shadow 0.2s;
+        }
+        
+        .rule-card:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .rule-card.disabled {
+            opacity: 0.6;
+            background: #f9f9f9;
+        }
+        
+        .rule-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+        
+        .rule-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+            flex: 1;
+        }
+        
+        .rule-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .rule-actions button {
+            padding: 6px 12px;
+            font-size: 13px;
+        }
+        
+        .rule-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .rule-info-item {
+            font-size: 14px;
+        }
+        
+        .rule-info-label {
+            font-weight: 600;
+            color: #666;
+            margin-right: 5px;
+        }
+        
+        .rule-patterns {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+        
+        .pattern-tag {
+            display: inline-block;
+            background: #3498db;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 13px;
+            margin: 3px;
+            font-family: monospace;
+        }
+        
+        .match-type-tag {
+            display: inline-block;
+            background: #9b59b6;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin: 2px;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 700px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-header h3 {
+            font-size: 20px;
+            color: #2c3e50;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+            line-height: 1;
+        }
+        
+        .modal-body {
+            padding: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #2c3e50;
+        }
+        
+        .form-group input[type="text"],
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .form-group input[type="checkbox"] {
+            margin-right: 8px;
+        }
+        
+        .pattern-input-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .pattern-input-group input {
+            flex: 1;
+        }
+        
+        .patterns-list {
+            margin-top: 10px;
+        }
+        
+        .pattern-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            margin-bottom: 5px;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            font-weight: normal;
+        }
+        
+        .preview-section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+        }
+        
+        .preview-header {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+        
+        .preview-channels {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .channel-item {
+            padding: 8px;
+            background: white;
+            border-radius: 4px;
+            margin-bottom: 5px;
+            display: flex;
+            gap: 10px;
+            font-size: 14px;
+        }
+        
+        .channel-number {
+            font-weight: 600;
+            color: #3498db;
+            min-width: 60px;
+        }
+        
+        .channel-name {
+            flex: 1;
+        }
+        
+        .channel-meta {
+            color: #666;
+            font-size: 13px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+        
+        .alert {
+            padding: 12px 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+        
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .sync-results {
+            margin-top: 15px;
+        }
+        
+        .sync-result-item {
+            padding: 10px;
+            background: white;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            border-left: 4px solid #3498db;
+        }
+        
+        .sync-result-stats {
+            display: flex;
+            gap: 15px;
+            margin-top: 5px;
+            font-size: 13px;
+            color: #666;
+        }
+        
+        .collection-card {
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 15px;
+            background: white;
+        }
+        
+        .collection-card:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .collection-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #ecf0f1;
+        }
+        
+        .collection-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .collection-stats {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .collection-count {
+            background: #3498db;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        
+        .collection-channels {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .collection-channels.expanded {
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        
+        .collection-channel-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 8px;
+            margin-top: 10px;
+        }
+        
+        .collection-channel-item {
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            font-size: 14px;
+            display: flex;
+            gap: 8px;
+        }
+        
+        .toggle-channels {
+            background: none;
+            border: none;
+            color: #3498db;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 5px 10px;
+            font-weight: 500;
+        }
+        
+        .toggle-channels:hover {
+            text-decoration: underline;
+        }
+        
+        .source-filter-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 5px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            min-height: 45px;
+        }
+        
+        .source-filter-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 10px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        
+        .source-filter-item input[type="checkbox"] {
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>📺 Channels DVR Collection Manager</h1>
+        </div>
+    </header>
+    
+    <div class="container">
+        <div class="status-bar">
+            <div class="status-item">
+                <span class="status-label">DVR:</span>
+                <span class="status-value" id="dvr-url">Loading...</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Sync Interval:</span>
+                <span class="status-value" id="sync-interval">60 min</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Last Sync:</span>
+                <span class="status-value" id="last-sync">Never</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Rules:</span>
+                <span class="status-value" id="rules-count">0</span>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-secondary" onclick="testConnection()">🔌 Test DVR Connection</button>
+                <button class="btn btn-success" onclick="triggerSync()">🔄 Sync Now</button>
+            </div>
+        </div>
+        
+        <div id="alert-container"></div>
+        
+        <div class="rules-section">
+            <div class="section-header">
+                <h2>⚙️ Collection Rules</h2>
+                <button class="btn" onclick="openRuleModal()">+ Add Rule</button>
+            </div>
+            
+            <div id="rules-list">
+                <div class="loading">Loading rules...</div>
+            </div>
+        </div>
+        
+        <div class="rules-section">
+            <div class="section-header" style="cursor: pointer;" onclick="toggleCollectionsSection()">
+                <h2>📺 Current Collections in Channels DVR</h2>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <button class="btn btn-secondary" onclick="event.stopPropagation(); loadCollectionsView()">🔄 Refresh</button>
+                    <span id="collections-toggle-icon" style="font-size: 20px;">▼</span>
+                </div>
+            </div>
+            <div id="collections-view" style="display: none;">
+                <div class="loading">Loading collections...</div>
+            </div>
+        </div>
+        
+        <div class="rules-section">
+            <div class="section-header">
+                <h2>Last Sync Results</h2>
+            </div>
+            <div id="sync-results">
+                <div class="empty-state">No sync results yet</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Rule Modal -->
+    <div id="rule-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Add Rule</h3>
+                <button class="modal-close" onclick="closeRuleModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="rule-form" onsubmit="saveRule(event)">
+                    <input type="hidden" id="rule-id">
+                    
+                    <div class="form-group">
+                        <label for="rule-name">Rule Name</label>
+                        <input type="text" id="rule-name" required placeholder="e.g., Sports Channels">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="collection-slug">Collection</label>
+                        <select id="collection-slug" required>
+                            <option value="">Select a collection...</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Match Types</label>
+                        <div class="checkbox-group">
+                            <label>
+                                <input type="checkbox" name="match-type" value="name" checked> Channel Name
+                            </label>
+                            <label>
+                                <input type="checkbox" name="match-type" value="number"> Channel Number
+                            </label>
+                            <label>
+                                <input type="checkbox" name="match-type" value="epg"> EPG (Callsign/Affiliate)
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="pattern-input">Patterns (Regex)</label>
+                        <small style="display: block; color: #666; margin-bottom: 8px;">
+                            Examples: <code>Sport</code> | <code>^ESPN</code> | <code>100-200</code> (number range)
+                        </small>
+                        <div class="pattern-input-group">
+                            <input type="text" id="pattern-input" placeholder="e.g., ^ESPN|^FOX Sports or 100-200">
+                            <button type="button" class="btn btn-secondary" onclick="addPattern()">Add</button>
+                        </div>
+                        <div id="patterns-list" class="patterns-list"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="sort-order">Channel Sort Order</label>
+                        <select id="sort-order" onchange="toggleCustomSortInput()">
+                            <option value="none">No sorting (default)</option>
+                            <option value="name_asc">Alphabetically (A-Z)</option>
+                            <option value="name_desc">Alphabetically (Z-A)</option>
+                            <option value="number_asc">Channel Number (Low to High)</option>
+                            <option value="number_desc">Channel Number (High to Low)</option>
+                            <option value="events_last">Events Last (Named channels first)</option>
+                            <option value="custom_regex">Custom Pattern Match (Regex)</option>
+                        </select>
+                        <small style="display: block; color: #666; margin-top: 5px;">
+                            "Events Last" puts channels with "Event XX" at the end, sorted by event number
+                        </small>
+                        
+                        <div id="custom-sort-input" style="display: none; margin-top: 10px;">
+                            <label for="sort-regex-pattern" style="font-size: 14px;">Pattern to prioritize (Regex):</label>
+                            <input type="text" id="sort-regex-pattern" placeholder="e.g., Boxing|Fight|PPV" 
+                                   style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px;">
+                            <small style="display: block; color: #666; margin-top: 5px;">
+                                Channels matching this pattern will appear first, then others (all sorted A-Z within each group)
+                            </small>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Source Filtering (Optional)</label>
+                        <small style="display: block; color: #666; margin-bottom: 10px;">
+                            Include or exclude channels from specific sources (e.g., Pluto TV, Frndly TV)
+                        </small>
+                        
+                        <div style="margin-bottom: 10px;">
+                            <strong style="font-size: 14px;">Include Sources:</strong>
+                            <small style="display: block; color: #666; margin-bottom: 5px;">
+                                Only channels from these sources (leave empty for all sources)
+                            </small>
+                            <div id="include-sources-list" class="source-filter-list"></div>
+                        </div>
+                        
+                        <div>
+                            <strong style="font-size: 14px;">Exclude Sources:</strong>
+                            <small style="display: block; color: #666; margin-bottom: 5px;">
+                                Never include channels from these sources
+                            </small>
+                            <div id="exclude-sources-list" class="source-filter-list"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="rule-enabled" checked> Enabled
+                        </label>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="sync-interval-override">Sync Interval Override (Optional)</label>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <input type="number" id="sync-interval-override" 
+                                   placeholder="Leave empty for global setting" 
+                                   min="1" max="1440"
+                                   style="width: 150px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                            <span>minutes</span>
+                        </div>
+                        <small style="display: block; color: #666; margin-top: 5px;">
+                            Set a custom sync interval for this rule only. Leave empty to use global setting (<span id="global-sync-display">60</span> min).
+                        </small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <button type="button" class="btn btn-secondary" onclick="previewRule()">Preview Matches</button>
+                    </div>
+                    
+                    <div id="preview-section" class="preview-section" style="display: none;">
+                        <div class="preview-header">Preview: <span id="preview-count">0</span> matching channels</div>
+                        <div id="preview-channels" class="preview-channels"></div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px; margin-top: 20px;">
+                        <button type="submit" class="btn btn-success">Save Rule</button>
+                        <button type="button" class="btn btn-secondary" onclick="closeRuleModal()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let currentPatterns = [];
+        let editingRuleId = null;
+        let availableSources = [];
+        let currentIncludeSources = [];
+        let currentExcludeSources = [];
+        
+        function toggleCustomSortInput() {
+            const sortOrder = document.getElementById('sort-order').value;
+            const customInput = document.getElementById('custom-sort-input');
+            if (sortOrder === 'custom_regex') {
+                customInput.style.display = 'block';
+            } else {
+                customInput.style.display = 'none';
+            }
+        }
+        
+        async function loadSources() {
+            try {
+                const response = await fetch('/api/sources');
+                availableSources = await response.json();
+                console.log('Loaded sources:', availableSources);
+                displaySourceFilters();
+            } catch (error) {
+                console.error('Error loading sources:', error);
+            }
+        }
+        
+        function displaySourceFilters() {
+            const includeContainer = document.getElementById('include-sources-list');
+            const excludeContainer = document.getElementById('exclude-sources-list');
+            
+            if (availableSources.length === 0) {
+                includeContainer.innerHTML = '<div style="padding: 5px; color: #999;">Loading sources...</div>';
+                excludeContainer.innerHTML = '<div style="padding: 5px; color: #999;">Loading sources...</div>';
+                return;
+            }
+            
+            // Render include sources
+            includeContainer.innerHTML = availableSources.map(source => `
+                <label class="source-filter-item">
+                    <input type="checkbox" 
+                           value="${source.device_id}" 
+                           ${currentIncludeSources.includes(source.device_id) ? 'checked' : ''}
+                           onchange="toggleIncludeSource('${source.device_id}')">
+                    <span>${source.name}</span>
+                </label>
+            `).join('');
+            
+            // Render exclude sources
+            excludeContainer.innerHTML = availableSources.map(source => `
+                <label class="source-filter-item">
+                    <input type="checkbox" 
+                           value="${source.device_id}"
+                           ${currentExcludeSources.includes(source.device_id) ? 'checked' : ''}
+                           onchange="toggleExcludeSource('${source.device_id}')">
+                    <span>${source.name}</span>
+                </label>
+            `).join('');
+        }
+        
+        function toggleIncludeSource(deviceId) {
+            const index = currentIncludeSources.indexOf(deviceId);
+            if (index > -1) {
+                currentIncludeSources.splice(index, 1);
+            } else {
+                currentIncludeSources.push(deviceId);
+            }
+        }
+        
+        function toggleExcludeSource(deviceId) {
+            const index = currentExcludeSources.indexOf(deviceId);
+            if (index > -1) {
+                currentExcludeSources.splice(index, 1);
+            } else {
+                currentExcludeSources.push(deviceId);
+            }
+        }
+        
+        function toggleCollectionsSection() {
+            const collectionsView = document.getElementById('collections-view');
+            const toggleIcon = document.getElementById('collections-toggle-icon');
+            
+            if (collectionsView.style.display === 'none') {
+                collectionsView.style.display = 'block';
+                toggleIcon.textContent = '▲';
+            } else {
+                collectionsView.style.display = 'none';
+                toggleIcon.textContent = '▼';
+            }
+        }
+        
+        // Load initial data
+        async function loadStatus() {
+            try {
+                const response = await fetch('/api/status');
+                const status = await response.json();
+                document.getElementById('dvr-url').textContent = status.dvr_url;
+                document.getElementById('sync-interval').textContent = status.sync_interval + ' min';
+                document.getElementById('rules-count').textContent = status.rules_count;
+                if (status.last_sync) {
+                    const date = new Date(status.last_sync);
+                    document.getElementById('last-sync').textContent = date.toLocaleString();
+                }
+            } catch (error) {
+                console.error('Error loading status:', error);
+            }
+        }
+        
+        async function loadRules() {
+            try {
+                const response = await fetch('/api/rules');
+                const rules = await response.json();
+                displayRules(rules);
+            } catch (error) {
+                console.error('Error loading rules:', error);
+                document.getElementById('rules-list').innerHTML = '<div class="empty-state">Error loading rules</div>';
+            }
+        }
+        
+        function getSortOrderLabel(sortOrder) {
+            if (sortOrder.startsWith('regex:')) {
+                const pattern = sortOrder.substring(6);
+                return `Custom: "${pattern}" first`;
+            }
+            const labels = {
+                'none': 'No sorting',
+                'name_asc': 'A-Z',
+                'name_desc': 'Z-A',
+                'number_asc': 'Number ↑',
+                'number_desc': 'Number ↓',
+                'events_last': 'Events Last',
+                'custom_regex': 'Custom Pattern'
+            };
+            return labels[sortOrder] || 'No sorting';
+        }
+        
+        function displayRules(rules) {
+            const container = document.getElementById('rules-list');
+            
+            if (rules.length === 0) {
+                container.innerHTML = '<div class="empty-state">No rules configured. Click "Add Rule" to get started.</div>';
+                return;
+            }
+            
+            container.innerHTML = rules.map(rule => `
+                <div class="rule-card ${!rule.enabled ? 'disabled' : ''}">
+                    <div class="rule-header">
+                        <div class="rule-title">${rule.name}</div>
+                        <div class="rule-actions">
+                            <button class="btn" onclick="editRule('${rule.id}')">Edit</button>
+                            <button class="btn btn-danger" onclick="deleteRule('${rule.id}')">Delete</button>
+                        </div>
+                    </div>
+                    <div class="rule-info">
+                        <div class="rule-info-item">
+                            <span class="rule-info-label">Collection:</span>
+                            ${rule.collection_slug}
+                        </div>
+                        <div class="rule-info-item">
+                            <span class="rule-info-label">Sort:</span>
+                            ${getSortOrderLabel(rule.sort_order || 'none')}
+                        </div>
+                        <div class="rule-info-item">
+                            <span class="rule-info-label">Sync:</span>
+                            ${rule.sync_interval_minutes ? rule.sync_interval_minutes + ' min' : 'Global'}
+                        </div>
+                        <div class="rule-info-item">
+                            <span class="rule-info-label">Status:</span>
+                            ${rule.enabled ? '✅ Enabled' : '⏸️ Disabled'}
+                        </div>
+                    </div>
+                    <div class="rule-patterns">
+                        <div style="margin-bottom: 8px;">
+                            <strong>Match:</strong>
+                            ${rule.match_types.map(t => `<span class="match-type-tag">${t}</span>`).join('')}
+                        </div>
+                        <div>
+                            <strong>Patterns:</strong>
+                            ${rule.patterns.map(p => `<span class="pattern-tag">${p}</span>`).join('')}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        async function loadCollections() {
+            console.log('loadCollections() called');
+            try {
+                const response = await fetch('/api/collections');
+                const collections = await response.json();
+                console.log('Collections fetched:', collections);
+                
+                const select = document.getElementById('collection-slug');
+                console.log('Select element:', select);
+                
+                if (!select) {
+                    console.error('ERROR: collection-slug element not found!');
+                    return;
+                }
+                
+                if (collections.length === 0) {
+                    select.innerHTML = `
+                        <option value="">No collections found - Create one in Channels DVR first</option>
+                    `;
+                } else {
+                    const options = '<option value="">Select a collection...</option>' +
+                        collections.map(c => {
+                            const collectionSlug = c.slug;
+                            const channelCount = c.items ? c.items.length : 0;
+                            console.log(`Adding option: ${c.name} (slug: ${collectionSlug})`);
+                            return `<option value="${collectionSlug}">${c.name} (${channelCount} channels)</option>`;
+                        }).join('');
+                    
+                    console.log('Setting select.innerHTML with', collections.length, 'collections');
+                    select.innerHTML = options;
+                    console.log('Dropdown now has', select.options.length, 'options');
+                }
+            } catch (error) {
+                console.error('Error loading collections:', error);
+                const select = document.getElementById('collection-slug');
+                if (select) {
+                    select.innerHTML = '<option value="">Error loading collections - Check DVR connection</option>';
+                }
+            }
+        }
+        
+        async function openRuleModal(ruleData = null) {
+            console.log('openRuleModal() called, ruleData:', ruleData);
+            editingRuleId = ruleData ? ruleData.id : null;
+            currentPatterns = ruleData ? [...ruleData.patterns] : [];
+            currentIncludeSources = ruleData ? (ruleData.include_sources || []) : [];
+            currentExcludeSources = ruleData ? (ruleData.exclude_sources || []) : [];
+            
+            document.getElementById('modal-title').textContent = ruleData ? 'Edit Rule' : 'Add Rule';
+            document.getElementById('rule-id').value = ruleData ? ruleData.id : '';
+            document.getElementById('rule-name').value = ruleData ? ruleData.name : '';
+            
+            // Handle sort order including custom regex
+            const sortOrder = ruleData ? (ruleData.sort_order || 'none') : 'none';
+            if (sortOrder.startsWith('regex:')) {
+                document.getElementById('sort-order').value = 'custom_regex';
+                document.getElementById('sort-regex-pattern').value = sortOrder.substring(6);
+                toggleCustomSortInput();
+            } else {
+                document.getElementById('sort-order').value = sortOrder;
+                document.getElementById('sort-regex-pattern').value = '';
+                toggleCustomSortInput();
+            }
+            
+            document.getElementById('rule-enabled').checked = ruleData ? ruleData.enabled : true;
+            
+            // Set sync interval override
+            const syncInterval = ruleData ? ruleData.sync_interval_minutes : null;
+            document.getElementById('sync-interval-override').value = syncInterval || '';
+            
+            // Update global sync interval display
+            fetch('/api/status')
+                .then(r => r.json())
+                .then(status => {
+                    document.getElementById('global-sync-display').textContent = status.sync_interval;
+                })
+                .catch(err => console.error('Error fetching status:', err));
+            
+            // Set match types
+            document.querySelectorAll('input[name="match-type"]').forEach(cb => {
+                cb.checked = ruleData ? ruleData.match_types.includes(cb.value) : cb.value === 'name';
+            });
+            
+            displayPatterns();
+            
+            // Load sources if not already loaded
+            if (availableSources.length === 0) {
+                loadSources();
+            } else {
+                displaySourceFilters();
+            }
+            
+            document.getElementById('preview-section').style.display = 'none';
+            document.getElementById('rule-modal').classList.add('active');
+            
+            const selectElement = document.getElementById('collection-slug');
+            console.log('Select element in modal:', selectElement);
+            console.log('Select has', selectElement ? selectElement.options.length : 'NULL', 'options');
+            
+            // IMPORTANT: Load collections first, THEN set the value
+            if (!selectElement || selectElement.options.length <= 1) {
+                console.log('Loading collections into dropdown...');
+                await loadCollections();
+            }
+            
+            // Now set collection value after collections are loaded
+            if (ruleData && ruleData.collection_slug) {
+                console.log('Setting collection to:', ruleData.collection_slug);
+                document.getElementById('collection-slug').value = ruleData.collection_slug;
+            }
+        }
+        
+        function closeRuleModal() {
+            document.getElementById('rule-modal').classList.remove('active');
+            document.getElementById('rule-form').reset();
+            currentPatterns = [];
+        }
+        
+        function addPattern() {
+            const input = document.getElementById('pattern-input');
+            const pattern = input.value.trim();
+            
+            if (pattern && !currentPatterns.includes(pattern)) {
+                currentPatterns.push(pattern);
+                displayPatterns();
+                input.value = '';
+            }
+        }
+        
+        function removePattern(index) {
+            currentPatterns.splice(index, 1);
+            displayPatterns();
+        }
+        
+        function displayPatterns() {
+            const container = document.getElementById('patterns-list');
+            if (currentPatterns.length === 0) {
+                container.innerHTML = '<div style="padding: 8px; color: #999; font-size: 14px;">No patterns added yet</div>';
+                return;
+            }
+            
+            container.innerHTML = currentPatterns.map((pattern, index) => `
+                <div class="pattern-item">
+                    <code>${pattern}</code>
+                    <button type="button" class="btn btn-danger" style="padding: 4px 8px; font-size: 12px;" onclick="removePattern(${index})">Remove</button>
+                </div>
+            `).join('');
+        }
+        
+        async function previewRule() {
+            const matchTypes = Array.from(document.querySelectorAll('input[name="match-type"]:checked')).map(cb => cb.value);
+            
+            if (currentPatterns.length === 0) {
+                showAlert('Please add at least one pattern', 'error');
+                return;
+            }
+            
+            // Handle sort order
+            let sortOrder = document.getElementById('sort-order').value;
+            if (sortOrder === 'custom_regex') {
+                const regexPattern = document.getElementById('sort-regex-pattern').value.trim();
+                if (regexPattern) {
+                    sortOrder = 'regex:' + regexPattern;
+                } else {
+                    sortOrder = 'none';
+                }
+            }
+            
+            const ruleData = {
+                patterns: currentPatterns,
+                match_types: matchTypes,
+                sort_order: sortOrder,
+                include_sources: currentIncludeSources,
+                exclude_sources: currentExcludeSources
+            };
+            
+            try {
+                const response = await fetch('/api/preview', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(ruleData)
+                });
+                const data = await response.json();
+                
+                // Update count
+                document.getElementById('preview-count').textContent = data.total;
+                
+                // Update header with sort info if applicable
+                const sortLabel = getSortOrderLabel(data.sort_order || 'none');
+                const headerDiv = document.getElementById('preview-section').querySelector('.preview-header');
+                if (data.sort_order && data.sort_order !== 'none') {
+                    headerDiv.innerHTML = `Preview: <span id="preview-count">${data.total}</span> matching channels <span style="color: #3498db;">(Sorted: ${sortLabel})</span>`;
+                } else {
+                    headerDiv.innerHTML = `Preview: <span id="preview-count">${data.total}</span> matching channels`;
+                }
+                
+                const channelsHtml = data.channels.map(ch => `
+                    <div class="channel-item">
+                        <div class="channel-number">${ch.number}</div>
+                        <div class="channel-name">${ch.name}</div>
+                        <div class="channel-meta" style="font-size: 12px; color: #999;">${ch.device || ''}</div>
+                    </div>
+                `).join('');
+                
+                document.getElementById('preview-channels').innerHTML = channelsHtml || '<div style="padding: 10px; color: #999;">No matching channels</div>';
+                document.getElementById('preview-section').style.display = 'block';
+            } catch (error) {
+                console.error('Error previewing rule:', error);
+                showAlert('Error previewing rule', 'error');
+            }
+        }
+        
+        async function saveRule(event) {
+            event.preventDefault();
+            
+            if (currentPatterns.length === 0) {
+                showAlert('Please add at least one pattern', 'error');
+                return;
+            }
+            
+            const matchTypes = Array.from(document.querySelectorAll('input[name="match-type"]:checked')).map(cb => cb.value);
+            
+            if (matchTypes.length === 0) {
+                showAlert('Please select at least one match type', 'error');
+                return;
+            }
+            
+            // Handle sort order
+            let sortOrder = document.getElementById('sort-order').value;
+            if (sortOrder === 'custom_regex') {
+                const regexPattern = document.getElementById('sort-regex-pattern').value.trim();
+                if (!regexPattern) {
+                    showAlert('Please enter a pattern for custom sorting', 'error');
+                    return;
+                }
+                sortOrder = 'regex:' + regexPattern;
+            }
+            
+            // Get sync interval override (convert to number or null)
+            const syncIntervalInput = document.getElementById('sync-interval-override').value;
+            const syncIntervalMinutes = syncIntervalInput ? parseInt(syncIntervalInput) : null;
+            
+            const ruleData = {
+                name: document.getElementById('rule-name').value,
+                collection_slug: document.getElementById('collection-slug').value,
+                patterns: currentPatterns,
+                match_types: matchTypes,
+                sort_order: sortOrder,
+                sync_interval_minutes: syncIntervalMinutes,
+                include_sources: currentIncludeSources,
+                exclude_sources: currentExcludeSources,
+                enabled: document.getElementById('rule-enabled').checked
+            };
+            
+            try {
+                let response;
+                if (editingRuleId) {
+                    response = await fetch(`/api/rules/${editingRuleId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(ruleData)
+                    });
+                } else {
+                    response = await fetch('/api/rules', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(ruleData)
+                    });
+                }
+                
+                if (response.ok) {
+                    showAlert('Rule saved successfully', 'success');
+                    closeRuleModal();
+                    loadRules();
+                    loadStatus();
+                } else {
+                    showAlert('Error saving rule', 'error');
+                }
+            } catch (error) {
+                console.error('Error saving rule:', error);
+                showAlert('Error saving rule', 'error');
+            }
+        }
+        
+        async function editRule(ruleId) {
+            try {
+                const response = await fetch('/api/rules');
+                const rules = await response.json();
+                const rule = rules.find(r => r.id === ruleId);
+                if (rule) {
+                    openRuleModal(rule);
+                }
+            } catch (error) {
+                console.error('Error loading rule:', error);
+            }
+        }
+        
+        async function deleteRule(ruleId) {
+            if (!confirm('Are you sure you want to delete this rule?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/rules/${ruleId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    showAlert('Rule deleted successfully', 'success');
+                    loadRules();
+                    loadStatus();
+                } else {
+                    showAlert('Error deleting rule', 'error');
+                }
+            } catch (error) {
+                console.error('Error deleting rule:', error);
+                showAlert('Error deleting rule', 'error');
+            }
+        }
+        
+        async function triggerSync() {
+            showAlert('Sync started...', 'info');
+            
+            try {
+                const response = await fetch('/api/sync', {
+                    method: 'POST'
+                });
+                const results = await response.json();
+                
+                if (results.errors.length > 0) {
+                    showAlert(`Sync completed with ${results.errors.length} error(s)`, 'error');
+                } else {
+                    showAlert('Sync completed successfully', 'success');
+                }
+                
+                loadStatus();
+                displaySyncResults(results);
+            } catch (error) {
+                console.error('Error triggering sync:', error);
+                showAlert('Error triggering sync', 'error');
+            }
+        }
+        
+        async function testConnection() {
+            showAlert('Testing DVR connection...', 'info');
+            
+            try {
+                const response = await fetch('/api/test-connection');
+                const results = await response.json();
+                
+                let message = `DVR URL: ${results.dvr_url}\n\n`;
+                
+                // Check devices endpoint
+                if (results.tests.devices.success) {
+                    const deviceCount = results.tests.devices.data ? results.tests.devices.data.length : 0;
+                    message += `✅ Devices: Found ${deviceCount} device(s)\n`;
+                } else {
+                    message += `❌ Devices: ${results.tests.devices.error || 'Failed (status ' + results.tests.devices.status + ')'}\n`;
+                }
+                
+                // Check collections endpoint
+                if (results.tests.collections.success) {
+                    const collectionCount = Array.isArray(results.tests.collections.data) 
+                        ? results.tests.collections.data.length 
+                        : Object.keys(results.tests.collections.data || {}).length;
+                    message += `✅ Collections: Found ${collectionCount} collection(s)\n`;
+                } else {
+                    message += `❌ Collections: ${results.tests.collections.error || 'Failed (status ' + results.tests.collections.status + ')'}\n`;
+                }
+                
+                // Check channels
+                if (results.tests.channels.success) {
+                    message += `✅ Channels: Found ${results.tests.channels.count} channel(s)\n`;
+                } else {
+                    message += `❌ Channels: ${results.tests.channels.error || 'Failed'}\n`;
+                }
+                
+                // Determine overall status
+                const allSuccess = results.tests.devices.success && 
+                                  results.tests.collections.success && 
+                                  results.tests.channels.success;
+                
+                if (allSuccess) {
+                    alert(message + '\n✅ All tests passed! Connection is working.');
+                    showAlert('DVR connection test passed', 'success');
+                } else {
+                    alert(message + '\n\n❌ Some tests failed. Check your DVR_URL configuration and ensure Channels DVR is running.');
+                    showAlert('DVR connection test failed - see console for details', 'error');
+                }
+                
+                console.log('Connection test results:', results);
+                
+            } catch (error) {
+                console.error('Error testing connection:', error);
+                showAlert('Error testing connection: ' + error.message, 'error');
+            }
+        }
+        
+        async function loadSyncResults() {
+            try {
+                const response = await fetch('/api/sync/status');
+                const data = await response.json();
+                if (data.results && Object.keys(data.results).length > 0) {
+                    displaySyncResults(data.results);
+                }
+            } catch (error) {
+                console.error('Error loading sync results:', error);
+            }
+        }
+        
+        async function loadCollectionsView() {
+            const container = document.getElementById('collections-view');
+            container.innerHTML = '<div class="loading">Loading collections...</div>';
+            
+            try {
+                const response = await fetch('/api/collections');
+                const collections = await response.json();
+                
+                if (collections.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <p><strong>No collections found in Channels DVR</strong></p>
+                            <p style="margin-top: 10px; font-size: 14px; color: #666;">
+                                To create a collection:
+                                <br>1. Open your Channels DVR web interface
+                                <br>2. Go to Settings → Channel Collections
+                                <br>3. Click "New Collection" and give it a name
+                                <br>4. Come back here and click the refresh button
+                            </p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                container.innerHTML = collections.map(collection => {
+                    const channelCount = collection.items ? collection.items.length : 0;
+                    const collectionSlug = collection.slug;
+                    return `
+                        <div class="collection-card">
+                            <div class="collection-header">
+                                <div>
+                                    <div class="collection-name">${collection.name}</div>
+                                    <div style="font-size: 12px; color: #999; margin-top: 4px;">Slug: ${collectionSlug}</div>
+                                </div>
+                                <div class="collection-stats">
+                                    <span class="collection-count">${channelCount} channels</span>
+                                    ${channelCount > 0 ? `
+                                        <button class="toggle-channels" onclick="toggleCollectionChannels('${collectionSlug}')">
+                                            View Channels ▼
+                                        </button>
+                                    ` : ''}
+                                </div>
+                            </div>
+                            <div id="channels-${collectionSlug}" class="collection-channels">
+                                <div class="loading">Loading channels...</div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (error) {
+                console.error('Error loading collections:', error);
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <p style="color: #e74c3c;"><strong>Error loading collections</strong></p>
+                        <p style="margin-top: 10px; font-size: 14px;">
+                            Make sure your DVR_URL is correct in the configuration.
+                            <br>Current DVR URL: <code id="error-dvr-url"></code>
+                        </p>
+                    </div>
+                `;
+                
+                // Show the DVR URL for troubleshooting
+                fetch('/api/status')
+                    .then(r => r.json())
+                    .then(status => {
+                        const urlEl = document.getElementById('error-dvr-url');
+                        if (urlEl) urlEl.textContent = status.dvr_url;
+                    });
+            }
+        }
+        
+        async function toggleCollectionChannels(collectionId) {
+            const channelsDiv = document.getElementById(`channels-${collectionId}`);
+            
+            if (channelsDiv.classList.contains('expanded')) {
+                channelsDiv.classList.remove('expanded');
+                return;
+            }
+            
+            // Load channel details if not already loaded
+            if (channelsDiv.querySelector('.loading')) {
+                try {
+                    const response = await fetch(`/api/collections/${collectionId}`);
+                    const data = await response.json();
+                    
+                    if (data.channels && data.channels.length > 0) {
+                        channelsDiv.innerHTML = `
+                            <div class="collection-channel-list">
+                                ${data.channels.map(ch => `
+                                    <div class="collection-channel-item">
+                                        <span class="channel-number">${ch.number}</span>
+                                        <span class="channel-name">${ch.name}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        `;
+                    } else {
+                        channelsDiv.innerHTML = '<div style="padding: 10px; color: #999;">No channels in this collection</div>';
+                    }
+                } catch (error) {
+                    console.error('Error loading collection details:', error);
+                    channelsDiv.innerHTML = '<div style="padding: 10px; color: #e74c3c;">Error loading channels</div>';
+                }
+            }
+            
+            channelsDiv.classList.add('expanded');
+        }
+        
+        function displaySyncResults(results) {
+            const container = document.getElementById('sync-results');
+            
+            if (!results.collections || Object.keys(results.collections).length === 0) {
+                let html = '<div class="alert alert-info">';
+                
+                if (!results.collections && results.errors && results.errors.length > 0) {
+                    html += '<strong>Sync completed with errors:</strong><br>' + 
+                           results.errors.map(e => `• ${e}`).join('<br>');
+                } else {
+                    html += '<strong>No collections were synced.</strong><br><br>' +
+                           'Possible reasons:<br>' +
+                           '• No rules are enabled<br>' +
+                           '• Rules don\'t have collection IDs assigned<br>' +
+                           '• No channels match your patterns<br>' +
+                           '• Collections don\'t exist in Channels DVR<br><br>' +
+                           'Try:<br>' +
+                           '1. Check that you have rules created and enabled<br>' +
+                           '2. Use "Preview Matches" to verify patterns work<br>' +
+                           '3. Click "Test DVR Connection" above to check connectivity';
+                }
+                
+                html += '</div>';
+                container.innerHTML = html;
+                return;
+            }
+            
+            const html = Object.entries(results.collections).map(([id, data]) => `
+                <div class="sync-result-item">
+                    <strong>${data.name}</strong>
+                    <div class="sync-result-stats">
+                        <span>📊 Total: ${data.total}</span>
+                        <span style="color: ${data.added > 0 ? '#27ae60' : '#999'}">➕ Added: ${data.added}</span>
+                        <span style="color: ${data.removed > 0 ? '#e74c3c' : '#999'}">➖ Removed: ${data.removed}</span>
+                    </div>
+                </div>
+            `).join('');
+            
+            if (results.errors && results.errors.length > 0) {
+                container.innerHTML = html + '<div class="alert alert-error"><strong>Errors:</strong><br>' + 
+                    results.errors.map(e => `• ${e}`).join('<br>') + '</div>';
+            } else {
+                container.innerHTML = html;
+            }
+        }
+        
+        function showAlert(message, type = 'info') {
+            const container = document.getElementById('alert-container');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            container.appendChild(alert);
+            
+            setTimeout(() => {
+                alert.remove();
+            }, 5000);
+        }
+        
+        // Initialize
+        loadStatus();
+        loadRules();
+        loadSyncResults();
+        loadCollectionsView();
+        loadSources();
+        
+        // Refresh status every 30 seconds
+        setInterval(loadStatus, 30000);
+    </script>
+</body>
+</html>
