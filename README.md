@@ -1,8 +1,8 @@
-```markdown
+
 [![Docker Pulls](https://img.shields.io/docker/pulls/CurtisFeatures/channels-collection-manager)](https://hub.docker.com/r/yourusername/channels-collection-manager)
 [![GitHub Stars](https://img.shields.io/github/stars/CurtisFeatures/channels-collection-manager)](https://github.com/yourusername/channels-collection-manager)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-```
+
 
 # Channels DVR Collection Manager
 
