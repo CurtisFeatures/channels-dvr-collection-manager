@@ -59,7 +59,7 @@ version: '3.8'
 
 services:
   channels-collection-manager:
-    image: ghcr.io/yourusername/channels-collection-manager:latest
+    image: ghcr.io/CurtisFeatures/channels-collection-manager:latest
     container_name: channels-collection-manager
     restart: unless-stopped
     ports:
