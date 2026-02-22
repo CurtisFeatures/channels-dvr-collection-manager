@@ -8,7 +8,7 @@ A powerful web-based tool for automatically managing channel collections in Chan
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Docker](https://img.shields.io/badge/docker-ready-brightgreen)
 
-[![Docker Pulls](https://img.shields.io/docker/pulls/CurtisFeatures/channels-dvr-collection-manager)](https://hub.docker.com/r/CurtisFeatures/channels-dvr-collection-manager)
+[![Docker Pulls](https://img.shields.io/docker/pulls/curtisfeatures/channels-dvr-collection-manager)](https://hub.docker.com/r/curtisfeatures/channels-dvr-collection-manager)
 [![GitHub Stars](https://img.shields.io/github/stars/CurtisFeatures/channels-dvr-collection-manager)](https://github.com/CurtisFeatures/channels-dvr-collection-manager)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -83,7 +83,7 @@ Build complex regex patterns visually:
 ```yaml
 services:
   channels-collection-manager:
-    image: ghcr.io/curtisfeatures/channels-dvr-collection-manager:latest
+    image: curtisfeatures/channels-collection-manager:latest
     container_name: channels-collection-manager
     ports:
       - "5000:5000"
