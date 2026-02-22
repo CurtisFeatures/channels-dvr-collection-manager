@@ -6,6 +6,8 @@
 *.md
 !README.md
 docs/
+Documentation/
+img/
 screenshots/
 
 # Development files
