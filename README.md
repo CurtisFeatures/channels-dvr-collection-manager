@@ -83,7 +83,7 @@ Build complex regex patterns visually:
 ```yaml
 services:
   channels-collection-manager:
-    image: curtisfeatures/channels-collection-manager:latest
+    image: curtisfeatures/channels-dvr-collection-manager:latest
     container_name: channels-collection-manager
     ports:
       - "5000:5000"
