@@ -292,10 +292,10 @@ See [API Documentation](Channels_Collection_Manager.postman_collection.json) for
 
 ## 📚 Documentation
 
-- [Quick Start Guide](QUICKSTART.md)
-- [First Rule Guide](FIRST_RULE_GUIDE.md)
-- [Advanced Features](ADVANCED_FEATURES.md)
-- [Changelog](CHANGELOG.md)
+- [Quick Start Guide](Documentation/QUICKSTART.md)
+- [First Rule Guide](Documentation/FIRST_RULE_GUIDE.md)
+- [Advanced Features](Documentation/ADVANCED_FEATURES.md)
+- [Changelog](Documentation/CHANGELOG.md)
 
 ## 🤝 Support
 
