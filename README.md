@@ -1,6 +1,4 @@
-[![Docker Pulls](https://img.shields.io/docker/pulls/CurtisFeatures/channels-dvr-collection-manager)](https://hub.docker.com/r/CurtisFeatures/channels-dvr-collection-manager)
-[![GitHub Stars](https://img.shields.io/github/stars/CurtisFeatures/channels-dvr-collection-manager)](https://github.com/CurtisFeatures/channels-dvr-collection-manager)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+<img src="static/logo.png" width="30%">
 
 # Channels DVR Collection Manager
 
@@ -9,6 +7,10 @@ A powerful web-based tool for automatically managing channel collections in Chan
 ![Version](https://img.shields.io/badge/version-1.1.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Docker](https://img.shields.io/badge/docker-ready-brightgreen)
+
+[![Docker Pulls](https://img.shields.io/docker/pulls/CurtisFeatures/channels-dvr-collection-manager)](https://hub.docker.com/r/CurtisFeatures/channels-dvr-collection-manager)
+[![GitHub Stars](https://img.shields.io/github/stars/CurtisFeatures/channels-dvr-collection-manager)](https://github.com/CurtisFeatures/channels-dvr-collection-manager)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## 🎯 What's New in v1.1.0
 
