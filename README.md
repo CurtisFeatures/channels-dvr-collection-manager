@@ -1,4 +1,4 @@
-<img src="static/logo.png" width="30%">
+<img src="https://github.com/CurtisFeatures/channels-dvr-collection-manager/blob/main/static/logo.png" width="30%">
 
 # Channels DVR Collection Manager
 
@@ -316,3 +316,18 @@ MIT License - see [LICENSE](LICENSE) file for details.
 - Built for [Channels DVR](https://getchannels.com/)
 - Inspired by the Channels DVR community
 - Custom UI design and pattern builder
+
+## Screenshots
+<img src="https://github.com/CurtisFeatures/channels-dvr-collection-manager/blob/main/img/Main%20Screen.png" width="80%">
+<img src="https://github.com/CurtisFeatures/channels-dvr-collection-manager/blob/main/img/Main%20Preview.png" width="80%">
+<img src="https://github.com/CurtisFeatures/channels-dvr-collection-manager/blob/main/img/Existing%20Collections.png" width="80%">
+<img src="https://github.com/CurtisFeatures/channels-dvr-collection-manager/blob/main/img/Rule%20Edit1.png" width="80%">
+<img src="https://github.com/CurtisFeatures/channels-dvr-collection-manager/blob/main/img/Rule%20Edit2.png" width="80%">
+<img src="https://github.com/CurtisFeatures/channels-dvr-collection-manager/blob/main/img/Pattern%20Builder%20Simple.png" width="80%">
+<img src="https://github.com/CurtisFeatures/channels-dvr-collection-manager/blob/main/img/Pattern%20Builder%20Advanced.png" width="80%">
+<img src="https://github.com/CurtisFeatures/channels-dvr-collection-manager/blob/main/img/Pattern%20Manual.png" width="80%">
+<img src="https://github.com/CurtisFeatures/channels-dvr-collection-manager/blob/main/img/Sort.png" width="80%">
+<img src="https://github.com/CurtisFeatures/channels-dvr-collection-manager/blob/main/img/Preview%20No%20Sort.png" width="80%">
+<img src="https://github.com/CurtisFeatures/channels-dvr-collection-manager/blob/main/img/Preview%20with%20Sort.png" width="80%">
+<img src="https://github.com/CurtisFeatures/channels-dvr-collection-manager/blob/main/img/Existing%20Collections.png" width="80%">
+<img src="https://github.com/CurtisFeatures/channels-dvr-collection-manager/blob/main/img/Sync%20Results.png" width="80%">
