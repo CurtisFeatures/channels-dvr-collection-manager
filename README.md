@@ -20,7 +20,7 @@ A powerful web-based tool for automatically managing channel collections in Chan
 - **⚙️ Granular Refresh Control** - Separate source and EPG refresh options
 - **⌨️ Better UX** - ESC key support, scrollable previews, inline editing
 
-See [CHANGELOG.md](CHANGELOG.md) for complete details.
+See [CHANGELOG.md](Documentation/CHANGELOG.md) for complete details.
 
 ## ✨ Features
 
@@ -103,9 +103,6 @@ docker-compose up -d
 http://localhost:5000
 ```
 
-### Unraid
-
-See [UNRAID.md](UNRAID.md) for detailed Unraid installation instructions.
 
 ## 📖 Usage
 
