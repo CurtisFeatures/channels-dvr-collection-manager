@@ -1,0 +1,197 @@
+{
+  "info": {
+    "name": "Channels Collection Manager",
+    "description": "API tests for Channels DVR Collection Manager",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Test App Status",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/status",
+          "host": ["{{base_url}}"],
+          "path": ["api", "status"]
+        }
+      }
+    },
+    {
+      "name": "2. Test DVR Connection",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/test-connection",
+          "host": ["{{base_url}}"],
+          "path": ["api", "test-connection"]
+        }
+      }
+    },
+    {
+      "name": "3. Get All Channels",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/channels",
+          "host": ["{{base_url}}"],
+          "path": ["api", "channels"]
+        }
+      }
+    },
+    {
+      "name": "4. Get All Collections",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/collections",
+          "host": ["{{base_url}}"],
+          "path": ["api", "collections"]
+        }
+      }
+    },
+    {
+      "name": "5. Get Specific Collection",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/collections/{{collection_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["api", "collections", "{{collection_id}}"]
+        }
+      }
+    },
+    {
+      "name": "6. Get All Rules",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/rules",
+          "host": ["{{base_url}}"],
+          "path": ["api", "rules"]
+        }
+      }
+    },
+    {
+      "name": "7. Preview Rule Matches",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"patterns\": [\"ESPN\"],\n  \"match_types\": [\"name\"]\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/preview",
+          "host": ["{{base_url}}"],
+          "path": ["api", "preview"]
+        }
+      }
+    },
+    {
+      "name": "8. Create Rule",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Test Sports Rule\",\n  \"collection_id\": \"{{collection_id}}\",\n  \"patterns\": [\"ESPN\", \"FOX Sports\"],\n  \"match_types\": [\"name\"],\n  \"enabled\": true\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/rules",
+          "host": ["{{base_url}}"],
+          "path": ["api", "rules"]
+        }
+      }
+    },
+    {
+      "name": "9. Trigger Manual Sync",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/sync",
+          "host": ["{{base_url}}"],
+          "path": ["api", "sync"]
+        }
+      }
+    },
+    {
+      "name": "10. Get Sync Status",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/sync/status",
+          "host": ["{{base_url}}"],
+          "path": ["api", "sync", "status"]
+        }
+      }
+    },
+    {
+      "name": "Delete Rule",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/rules/{{rule_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["api", "rules", "{{rule_id}}"]
+        }
+      }
+    },
+    {
+      "name": "Update Rule",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Updated Sports Rule\",\n  \"collection_id\": \"{{collection_id}}\",\n  \"patterns\": [\"ESPN\", \"FOX Sports\", \"NBC Sports\"],\n  \"match_types\": [\"name\", \"epg\"],\n  \"enabled\": true\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/rules/{{rule_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["api", "rules", "{{rule_id}}"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://10.0.60.73:5000",
+      "type": "string"
+    },
+    {
+      "key": "collection_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "rule_id",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

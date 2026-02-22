@@ -12,13 +12,18 @@ import requests
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = Flask(__name__)
+# Configure Flask with absolute paths
+app = Flask(__name__, 
+            static_folder='/app/static',
+            template_folder='/app/templates',
+            static_url_path='/static')
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key')
 
 # Configuration
 DVR_URL = os.environ.get('DVR_URL', 'http://channelsdvr:8089')
 CONFIG_FILE = '/config/rules.json'
 SYNC_INTERVAL = int(os.environ.get('SYNC_INTERVAL_MINUTES', '60'))
+
 
 class ChannelsAPI:
     """Interface to Channels DVR API"""
@@ -231,6 +236,7 @@ class SyncManager:
     
     def _sort_channels(self, channel_ids: List[str], channel_map: Dict[str, Dict], sort_order: str) -> List[str]:
         """Sort channel IDs based on the specified order"""
+        import re  # Import at method level for all uses
         
         def get_sort_key(channel_id: str):
             channel = channel_map.get(channel_id, {})
@@ -246,21 +252,42 @@ class SyncManager:
             return (name, num_float, channel_id)
         
         def is_event_channel(channel_id: str) -> bool:
-            """Check if channel name contains 'Event' followed by a number/space"""
+            """Check if channel is a generic placeholder (not a real program)"""
             channel = channel_map.get(channel_id, {})
             name = channel.get('GuideName', '').strip()
-            # Match patterns like "Event 1", "Event 01", "DAZN UK - Event 50", etc.
-            import re
-            return bool(re.search(r'\bEvent\s+\d+', name, re.IGNORECASE))
+            
+            # Pattern 1: "Event XX" anywhere in name
+            if re.search(r'\bEvent\s+\d+', name, re.IGNORECASE):
+                return True
+            
+            # Pattern 2: Placeholder patterns (no program name)
+            # Matches: "Paramount+ 50 :", ":Paramount+ 97", "DAZN UK - 50", etc.
+            # These are just provider + number with optional leading colon or trailing colon
+            placeholder_patterns = [
+                r'^:?\s*[\w\s]+(Plus|\+)[\s\-:]+\d+[\s:]*$',  # :Paramount+ 50 or Paramount+ 50 :
+                r'^[\w\s]+[\s\-]+\d+[\s:]*$',  # Provider Name - 50 :
+            ]
+            for pattern in placeholder_patterns:
+                if re.search(pattern, name, re.IGNORECASE):
+                    # But make sure it doesn't have a real program name (contains @ or long text before :)
+                    # Real programs have format: "Program Name @ Date :Paramount+ XX"
+                    if '@' in name or re.search(r'^.{30,}:', name):
+                        return False  # Has program info, not a placeholder
+                    return True
+            
+            return False
         
         def extract_event_number(channel_id: str) -> int:
             """Extract the event number from channel name for proper sorting"""
             channel = channel_map.get(channel_id, {})
             name = channel.get('GuideName', '')
-            import re
             match = re.search(r'\bEvent\s+(\d+)', name, re.IGNORECASE)
             if match:
                 return int(match.group(1))
+            # Also try to extract from "Provider+ 50" format
+            match = re.search(r'(Plus|\+)[\s\-:]+(\d+)', name, re.IGNORECASE)
+            if match:
+                return int(match.group(2))
             return 999999
         
         if sort_order == 'name_asc':
@@ -308,7 +335,6 @@ class SyncManager:
             # Custom regex-based sorting
             pattern = sort_order[6:]  # Remove 'regex:' prefix
             try:
-                import re
                 regex = re.compile(pattern, re.IGNORECASE)
                 
                 # Separate channels that match the regex vs those that don't
@@ -354,6 +380,76 @@ class SyncManager:
         if not rule.get('enabled'):
             logger.warning(f"Rule {rule_id} is disabled, skipping")
             return {'error': 'Rule is disabled'}
+        
+        # Refresh sources and/or EPG if requested
+        refresh_sources = rule.get('refresh_sources_before_sync', False)
+        refresh_epg = rule.get('refresh_epg_before_sync', False)
+        
+        if refresh_sources or refresh_epg:
+            logger.info(f"Refresh requested for rule: {rule.get('name')} (sources: {refresh_sources}, EPG: {refresh_epg})")
+            
+            try:
+                import threading
+                
+                def do_refresh():
+                    # Refresh sources if requested
+                    if refresh_sources:
+                        # Determine which sources to refresh
+                        sources_to_refresh = []
+                        
+                        if rule.get('include_sources'):
+                            sources_to_refresh = rule.get('include_sources', [])
+                            logger.info(f"Refreshing specific included sources: {sources_to_refresh}")
+                        else:
+                            # Get all sources
+                            try:
+                                devices_response = requests.get(f"{self.api.base_url}/devices", timeout=5)
+                                if devices_response.status_code == 200:
+                                    all_devices = devices_response.json()
+                                    sources_to_refresh = [d.get('DeviceID') for d in all_devices if d.get('DeviceID')]
+                                    
+                                    if rule.get('exclude_sources'):
+                                        excluded = set(rule.get('exclude_sources', []))
+                                        sources_to_refresh = [s for s in sources_to_refresh if s not in excluded]
+                                        logger.info(f"Refreshing all sources except: {list(excluded)}")
+                                    else:
+                                        logger.info(f"Refreshing all {len(sources_to_refresh)} sources")
+                            except Exception as e:
+                                logger.warning(f"Error getting devices list: {e}")
+                        
+                        # Refresh each source
+                        for device_id in sources_to_refresh:
+                            try:
+                                rescan_url = f"{self.api.base_url}/dvr/sources/{device_id}/rescan"
+                                rescan_response = requests.put(rescan_url, timeout=5)
+                                if rescan_response.status_code == 200:
+                                    logger.info(f"✓ Source {device_id} rescan triggered")
+                                else:
+                                    logger.warning(f"Source {device_id} rescan returned status {rescan_response.status_code}")
+                            except Exception as e:
+                                logger.warning(f"Error rescanning source {device_id}: {e}")
+                    
+                    # Refresh EPG if requested
+                    if refresh_epg:
+                        try:
+                            epg_response = requests.put(f"{self.api.base_url}/dvr/guide/refresh", timeout=5)
+                            if epg_response.status_code == 200:
+                                logger.info("✓ EPG refresh triggered")
+                            else:
+                                logger.warning(f"EPG refresh returned status {epg_response.status_code}")
+                        except Exception as e:
+                            logger.warning(f"Error refreshing EPG: {e}")
+                
+                # Run refresh in background thread
+                refresh_thread = threading.Thread(target=do_refresh, daemon=True)
+                refresh_thread.start()
+                
+                # Brief pause to let refresh start
+                import time
+                time.sleep(0.5)
+                
+            except Exception as e:
+                logger.warning(f"Error starting refresh: {e}")
         
         # Get all channels
         all_channels = self.api.get_channels()
@@ -531,7 +627,20 @@ def api_status():
         'dvr_url': DVR_URL,
         'last_sync': sync_manager.last_sync.isoformat() if sync_manager.last_sync else None,
         'sync_interval': SYNC_INTERVAL,
-        'rules_count': len(rule_manager.rules)
+        'rules_count': len(rule_manager.rules),
+        'version': '1.0.1'
+    })
+
+
+@app.route('/api/debug/static')
+def debug_static():
+    """Debug static folder configuration"""
+    import os
+    return jsonify({
+        'static_folder': app.static_folder,
+        'static_url_path': app.static_url_path,
+        'static_exists': os.path.exists(app.static_folder) if app.static_folder else False,
+        'static_contents': os.listdir(app.static_folder) if app.static_folder and os.path.exists(app.static_folder) else []
     })
 
 

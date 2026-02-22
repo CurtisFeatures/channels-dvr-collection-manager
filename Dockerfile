@@ -9,6 +9,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application files
 COPY app/ /app/
 COPY templates/ /app/templates/
+COPY static/ /app/static/
 
 # Create config directory
 RUN mkdir -p /config

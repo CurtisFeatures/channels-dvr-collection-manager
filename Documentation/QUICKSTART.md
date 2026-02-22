@@ -28,7 +28,7 @@ If you're seeing "No collections synced" after clicking "Sync Now", follow these
 **If no collections appear:**
 - Collections must be created in Channels DVR first!
 - Open Channels DVR web interface: `http://your-dvr-ip:8089`
-- Go to Settings → Channel Collections
+- Go to Live TV → Channel Collections
 - Click "New Collection" and create one
 - Come back and click the refresh button
 

@@ -1,263 +1,319 @@
-
-[![Docker Pulls](https://img.shields.io/docker/pulls/CurtisFeatures/channels-collection-manager)](https://hub.docker.com/r/yourusername/channels-collection-manager)
-[![GitHub Stars](https://img.shields.io/github/stars/CurtisFeatures/channels-collection-manager)](https://github.com/yourusername/channels-collection-manager)
+[![Docker Pulls](https://img.shields.io/docker/pulls/CurtisFeatures/channels-dvr-collection-manager)](https://hub.docker.com/r/CurtisFeatures/channels-dvr-collection-manager)
+[![GitHub Stars](https://img.shields.io/github/stars/CurtisFeatures/channels-dvr-collection-manager)](https://github.com/CurtisFeatures/channels-dvr-collection-manager)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-
 
 # Channels DVR Collection Manager
 
-A web-based service to dynamically manage Channels DVR channel collections using pattern matching and regex. Automatically adds and removes channels based on configurable rules.
+A powerful web-based tool for automatically managing channel collections in Channels DVR based on flexible pattern matching rules.
 
-## Features
+![Version](https://img.shields.io/badge/version-1.1.0-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+![Docker](https://img.shields.io/badge/docker-ready-brightgreen)
 
-- 🎯 **Pattern Matching**: Use regex patterns to match channels by name, number, or EPG data
-- 🔄 **Automatic Sync**: Scheduled synchronization to keep collections up-to-date
-- 🌐 **Web Interface**: Easy-to-use web UI for managing rules
-- 👁️ **Preview**: See which channels match your patterns before applying
-- 📊 **Sync Reports**: View detailed results of each sync operation
-- 🐳 **Docker Ready**: Easy deployment with Docker Compose
+## 🎯 What's New in v1.1.0
 
-## Quick Start
+### Major Features
+- **🎨 Beautiful New UI** - Custom purple theme with professional design
+- **✏️ Visual Pattern Builder** - Build complex patterns without knowing regex
+- **🔍 Live Preview** - Test patterns as you build them
+- **📋 Copy & Clone** - Reuse patterns and duplicate rules
+- **⚙️ Granular Refresh Control** - Separate source and EPG refresh options
+- **⌨️ Better UX** - ESC key support, scrollable previews, inline editing
 
-### Prerequisites
+See [CHANGELOG.md](CHANGELOG.md) for complete details.
 
-- Docker and Docker Compose installed
-- Channels DVR server running on your network
-- Access to your Channels DVR API (usually port 8089)
+## ✨ Features
 
-### Installation
+### Automated Collection Management
+- **Pattern-Based Matching**: Use regex patterns to automatically match channels
+- **Visual Pattern Builder**: Build patterns without regex knowledge
+  - Simple mode with 7 pattern types
+  - Advanced mode with multi-condition AND/OR logic  
+  - Live preview showing matching channels
+- **Multiple Match Types**: Match on channel name, number, or EPG data
+- **Source Filtering**: Include or exclude specific sources
+- **Smart Sorting**: Multiple options including "Events Last" for sports
+- **Per-Rule Sync**: Custom intervals for each rule
+- **Selective Refresh**: Refresh only relevant sources before syncing
 
-1. **Clone or download this repository**
+### Pattern Builder
 
-2. **Edit `docker-compose.yml`**
-   
-   Update the `DVR_URL` environment variable to point to your Channels DVR server:
-   ```yaml
-   environment:
-     - DVR_URL=http://192.168.1.100:8089  # Change to your DVR IP
-   ```
+Build complex regex patterns visually:
 
-3. **Build and start the container**
-   ```bash
-   docker-compose up -d
-   ```
+**Simple Mode** - Choose from 7 common patterns:
+- Contains text
+- Starts with text
+- Ends with text
+- Exact match
+- Any of these words (OR)
+- Channel number range
+- Does NOT contain
 
-4. **Access the web interface**
-   
-   Open your browser and go to: `http://localhost:5000`
+**Advanced Mode** - Combine multiple conditions:
+- Multiple conditions with AND logic
+- OR logic within conditions (comma-separated)
+- Per-condition case sensitivity
+- Real-time pattern generation
+- Built-in examples
 
-## Configuration
+### Live Testing
+- **Test Before Adding** - See matches before committing
+- **Scrollable Results** - View all matching channels
+- **Multiple Preview Points** - Builder, manual entry, and complete rule
+
+### Smart Sorting Options
+- **Events Last**: Puts event channels (e.g., "Event 1") at the end
+- **Alphabetical**: A-Z or Z-A
+- **Channel Number**: Ascending or descending
+- **Custom Regex**: Prioritize channels matching a pattern
+- **Paramount+ Events**: Special handling for Paramount+ numbering
+
+### Copy & Clone
+- **Copy Patterns**: Reuse successful patterns from other rules
+- **Clone Rules**: Duplicate entire rules for variations
+- **Edit Patterns**: Modify existing patterns inline
+
+## 🚀 Quick Start
+
+### Docker Compose (Recommended)
+
+1. Create `docker-compose.yml`:
+```yaml
+services:
+  channels-collection-manager:
+    image: ghcr.io/curtisfeatures/channels-dvr-collection-manager:latest
+    container_name: channels-collection-manager
+    ports:
+      - "5000:5000"
+    environment:
+      - DVR_URL=http://your-channels-dvr:8089
+      - SYNC_INTERVAL_MINUTES=60
+    volumes:
+      - ./config:/config
+    restart: unless-stopped
+```
+
+2. Start the container:
+```bash
+docker-compose up -d
+```
+
+3. Open web interface:
+```
+http://localhost:5000
+```
+
+### Unraid
+
+See [UNRAID.md](UNRAID.md) for detailed Unraid installation instructions.
+
+## 📖 Usage
+
+### Creating Your First Rule
+
+1. **Click "+ Add Rule"**
+
+2. **Basic Settings:**
+   - Name: e.g., "DAZN Sports Channels"
+   - Collection: Select from your Channels DVR collections
+   - Match Types: Channel Name, Number, or EPG
+
+3. **Build Patterns** - Choose your method:
+
+   **Option A: Pattern Builder** (Recommended for beginners)
+   - Click "Show Builder"
+   - **Simple Mode**: Select pattern type and enter text
+   - **Advanced Mode**: Combine multiple conditions
+   - Click "Test Pattern" to see matches
+   - Click "Add This Pattern"
+
+   **Option B: Copy from Another Rule**
+   - Expand "📋 Copy Patterns from Another Rule"
+   - Select a rule from dropdown
+   - Choose which patterns to copy
+   - Click "Copy Selected Patterns"
+
+   **Option C: Manual Entry** (For regex experts)
+   - Enter pattern directly
+   - Click "Test" to preview
+   - Click "Add"
+
+4. **Configure Options:**
+   - **Sort Order**: Choose how channels are sorted
+   - **Source Filters**: Include/exclude specific sources
+   - **Sync Interval**: Per-rule override (optional)
+   - **Refresh Options**:
+     - ☐ Refresh Sources Before Each Sync
+     - ☐ Refresh EPG Before Each Sync
+
+5. **Preview:** Click "Preview" to see complete results
+
+6. **Save:** Rule syncs immediately and on schedule
+
+### Example Rules
+
+#### DAZN Sports (Simple Mode)
+- Pattern Type: "Contains"
+- Text: "DAZN"
+- Match: Channel Name
+- Sort: Events Last
+- Include Sources: DAZN UK P1
+
+#### ESPN (excluding news)
+Using Advanced Mode:
+- Condition 1: Starts with "ESPN"
+- Condition 2: Does NOT contain "News"
+- Result: `^(?!.*News)ESPN.*$`
+
+#### Channel Range
+- Pattern Type: "Channel number range"
+- Range: "100-200"
+- Match: Channel Number
+
+## 🔧 Advanced Features
+
+### Pattern Examples
+
+**Simple Patterns:**
+```
+Sport                    # Contains "Sport"
+^ESPN                    # Starts with "ESPN"
+HD$                      # Ends with "HD"
+^ESPN HD$                # Exact match "ESPN HD"
+ESPN|FOX|NBC             # Any of these (OR)
+^(?!.*Kids).*$           # Does NOT contain "Kids"
+100-200                  # Channel range
+```
+
+**Advanced Combinations:**
+```
+^(?!.*football)(?=.*DAZN).*$
+# Contains "DAZN" AND Does NOT contain "football"
+
+^(?=.*(Sport|ESPN))Sky.*$
+# Contains "Sport" OR "ESPN" AND Starts with "Sky"
+```
+
+### Refresh Options
+
+Control when data is refreshed:
+
+**Refresh Sources Before Each Sync:**
+- Rescans sources for new/changed channels
+- Only refreshes sources used by the rule
+- Useful for IPTV providers with dynamic channels
+
+**Refresh EPG Before Each Sync:**
+- Updates program guide data
+- Ensures latest schedule information
+
+**Smart Scoping:**
+- If "Include Sources" set: Only those sources refreshed
+- If "Exclude Sources" set: All except those refreshed
+- If no filters: All sources refreshed
+
+### Clone Rules
+
+Create variations quickly:
+1. Find existing rule
+2. Click "📋 Clone"
+3. Modify settings
+4. Save as new rule
+
+Perfect for:
+- Testing different sort orders
+- Creating similar rules for different collections
+- Building variations of successful patterns
+
+## 🔌 API
+
+REST API for programmatic access:
+
+### Endpoints
+
+```
+GET    /api/rules          # List all rules
+POST   /api/rules          # Create rule
+PUT    /api/rules/{id}     # Update rule
+DELETE /api/rules/{id}     # Delete rule
+POST   /api/preview        # Preview matches
+GET    /api/status         # Sync status
+```
+
+See [API Documentation](Channels_Collection_Manager.postman_collection.json) for details.
+
+## ⚙️ Configuration
 
 ### Environment Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DVR_URL` | `http://channelsdvr:8089` | URL to your Channels DVR server |
-| `SYNC_INTERVAL_MINUTES` | `60` | How often to sync collections (in minutes) |
-| `SECRET_KEY` | `dev-secret-key` | Flask secret key for sessions |
+| `DVR_URL` | `http://channelsdvr:8089` | Channels DVR server URL |
+| `SYNC_INTERVAL_MINUTES` | `60` | Global sync interval |
 
-### Docker Compose for Unraid
+### Rule Structure
 
-For Unraid users, add this to your docker-compose file or use the Unraid Docker UI:
-
-```yaml
-version: '3.8'
-
-services:
-  channels-collection-manager:
-    image: ghcr.io/CurtisFeatures/channels-collection-manager:latest
-    container_name: channels-collection-manager
-    restart: unless-stopped
-    ports:
-      - "5000:5000"
-    environment:
-      - DVR_URL=http://192.168.1.100:8089
-      - SYNC_INTERVAL_MINUTES=60
-      - SECRET_KEY=your-random-secret-key-here
-    volumes:
-      - /mnt/user/appdata/channels-collection-manager:/config
+```json
+{
+  "id": "unique-id",
+  "name": "Rule Name",
+  "collection_slug": "collection-slug",
+  "patterns": ["pattern1", "pattern2"],
+  "match_types": ["name", "number"],
+  "sort_order": "events_last",
+  "include_sources": ["source-id"],
+  "exclude_sources": ["source-id"],
+  "sync_interval_minutes": 15,
+  "refresh_sources_before_sync": true,
+  "refresh_epg_before_sync": false,
+  "enabled": true
+}
 ```
 
-## Usage
+## 🐛 Troubleshooting
 
-### Important: Create Collections First
+### Common Issues
 
-**Before creating rules**, you must create channel collections in Channels DVR:
+**Rules not syncing:**
+- Verify `DVR_URL` is correct and accessible
+- Check collections exist in Channels DVR
+- View logs: `docker logs channels-collection-manager`
 
-1. Open your Channels DVR web interface (usually `http://your-dvr-ip:8089`)
-2. Go to **Live TV → Channel Collections**
-3. Click **"New Collection"**
-4. Give it a name (e.g., "Sports", "News", "Local HD")
-5. You can leave it empty - the rules will populate it automatically
-6. Save the collection
+**Patterns not matching:**
+- Use Pattern Builder's live preview
+- Test with "Test Pattern" button
+- Verify match types are selected
+- Check case sensitivity settings
 
-Repeat this for each collection you want to manage automatically. Then come back to the Collection Manager web interface and click the refresh button to see your collections.
+**Preview shows wrong channels:**
+- Review source filters (include/exclude)
+- Confirm match types are correct
+- Test individual patterns separately
 
-### Creating a Rule
 
-1. Click **"+ Add Rule"** in the web interface
-2. Enter a **Rule Name** (e.g., "Sports Channels")
-3. Select the **Collection** to manage
-4. Choose **Match Types**:
-   - **Channel Name**: Match against the channel's display name
-   - **Channel Number**: Match against the channel number
-   - **EPG**: Match against callsign and affiliate data
-5. Add **Patterns** (regex):
-   - Click "Add" after entering each pattern
-   - Examples:
-     - `^ESPN` - Channels starting with "ESPN"
-     - `^FOX Sports` - Channels starting with "FOX Sports"
-     - `HBO|Showtime|Starz` - Any channel containing HBO, Showtime, or Starz
-     - `\d+-\d+` - Channels with numbers like "2-1" or "5-3"
-6. Click **"Preview Matches"** to see which channels will be included
-7. Click **"Save Rule"**
+## 📚 Documentation
 
-### Pattern Examples
+- [Quick Start Guide](QUICKSTART.md)
+- [First Rule Guide](FIRST_RULE_GUIDE.md)
+- [Advanced Features](ADVANCED_FEATURES.md)
+- [Changelog](CHANGELOG.md)
 
-Here are some useful regex patterns:
+## 🤝 Support
 
-| Pattern | Matches |
-|---------|---------|
-| `^ESPN` | ESPN, ESPN2, ESPNEWS, etc. |
-| `^NBC\|^CBS\|^ABC\|^FOX` | Major broadcast networks |
-| `HD$` | Channels ending with "HD" |
-| `\d+-\d+` | Sub-channels (2-1, 5-3, etc.) |
-| `HBO\|Showtime\|Starz` | Premium channels |
-| `Sports?\|NFL\|NBA\|MLB\|NHL` | Sports-related channels |
-| `News` | Any channel with "News" in the name |
-| `^[0-9]{1,2}$` | Single or double-digit channel numbers |
-| `Local` | Channels with "Local" in the name |
+- **Documentation**: [GitHub](https://github.com/CurtisFeatures/channels-dvr-collection-manager)
+- **Issues**: [GitHub Issues](https://github.com/CurtisFeatures/channels-dvr-collection-manager/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/CurtisFeatures/channels-dvr-collection-manager/discussions)
 
-### Managing Rules
+## 🙏 Contributing
 
-- **Edit**: Click "Edit" on any rule to modify it
-- **Delete**: Click "Delete" to remove a rule
-- **Enable/Disable**: Use the "Enabled" checkbox when editing
-- **Preview**: Use the preview feature to test patterns before saving
+Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-### Syncing
+## 📄 License
 
-- **Automatic**: Runs every hour (configurable)
-- **Manual**: Click "🔄 Sync Now" at the top of the page
-- **Results**: View sync results at the bottom of the page
+MIT License - see [LICENSE](LICENSE) file for details.
 
-## How It Works
+## 🌟 Acknowledgments
 
-1. **Rule Evaluation**: On each sync, the service:
-   - Fetches all available channels from your Channels DVR
-   - Applies each enabled rule's patterns
-   - Identifies matching channels
-
-2. **Collection Update**: For each collection:
-   - Compares current channels with matched channels
-   - Adds new matching channels
-   - Removes channels that no longer match
-   - Updates the collection via the Channels DVR API
-
-3. **Reporting**: After each sync:
-   - Shows which channels were added/removed
-   - Displays any errors
-   - Updates the dashboard
-
-## API Endpoints
-
-The service exposes a REST API for advanced users:
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/status` | GET | Get system status |
-| `/api/rules` | GET | List all rules |
-| `/api/rules` | POST | Create a new rule |
-| `/api/rules/<id>` | PUT | Update a rule |
-| `/api/rules/<id>` | DELETE | Delete a rule |
-| `/api/channels` | GET | List all channels |
-| `/api/collections` | GET | List all collections |
-| `/api/preview` | POST | Preview rule matches |
-| `/api/sync` | POST | Trigger manual sync |
-| `/api/sync/status` | GET | Get last sync results |
-
-## Troubleshooting
-
-### "Failed to fetch channels from DVR"
-
-- Verify the `DVR_URL` is correct
-- Ensure your Channels DVR is running
-- Check that port 8089 is accessible
-- Try accessing `http://your-dvr-ip:8089/devices` in a browser
-
-### Rules not syncing
-
-- Check that rules are **Enabled**
-- Verify your regex patterns are valid
-- Use the **Preview** feature to test patterns
-- Check the sync results for errors
-
-### No channels matching
-
-- Double-check your patterns using the preview feature
-- Try broader patterns first, then narrow down
-- Remember that patterns are case-insensitive
-- Check the actual channel names in the Channels DVR web interface
-
-### Container won't start
-
-- Check Docker logs: `docker-compose logs channels-collection-manager`
-- Verify all environment variables are set correctly
-- Ensure the config volume path exists and is writable
-
-## File Locations
-
-- **Configuration**: `/config/rules.json` (inside container)
-- **Logs**: Check Docker logs with `docker-compose logs -f`
-
-## Advanced Usage
-
-### Multiple Match Types
-
-You can combine match types for more precise filtering:
-- Enable both "Name" and "Number" to match either
-- Use EPG matching for callsign/affiliate based rules
-
-### Complex Patterns
-
-Combine multiple patterns for OR logic:
-```
-Pattern 1: ^ESPN
-Pattern 2: ^FOX Sports
-Pattern 3: NFL
-```
-This will match channels starting with "ESPN", starting with "FOX Sports", OR containing "NFL".
-
-### Excluding Channels
-
-Use negative lookahead in regex:
-```
-^(?!.*Kids)HBO
-```
-This matches HBO channels but excludes those with "Kids" in the name.
-
-## Building from Source
-
-```bash
-# Clone the repository
-git clone <repo-url>
-cd channels-collection-manager
-
-# Build the Docker image
-docker build -t channels-collection-manager .
-
-# Run with docker-compose
-docker-compose up -d
-```
-
-## Support
-
-For issues, feature requests, or questions, please open an issue on GitHub.
-
-## License
-
-MIT License - feel free to use and modify as needed.
-
-## Credits
-
-Built for the Channels DVR community. Channels DVR is a product of Fancy Bits.
+- Built for [Channels DVR](https://getchannels.com/)
+- Inspired by the Channels DVR community
+- Custom UI design and pattern builder

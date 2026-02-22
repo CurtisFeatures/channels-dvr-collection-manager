@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Channels DVR Collection Manager</title>
+    <link rel="icon" type="image/png" href="/static/favicon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * {
             box-sizing: border-box;
@@ -13,7 +17,8 @@
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: #f5f5f5;
+            background: linear-gradient(to bottom, #f8f7ff 0%, #faf9ff 100%);
+            min-height: 100vh;
             color: #333;
             line-height: 1.6;
         }
@@ -25,16 +30,19 @@
         }
         
         header {
-            background: #2c3e50;
+            background: linear-gradient(135deg, #5b4fc7 0%, #7c6fd9 50%, #8b7ee3 100%);
             color: white;
-            padding: 20px 0;
+            padding: 25px 0;
             margin-bottom: 30px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 12px rgba(91, 79, 199, 0.3);
         }
         
         header h1 {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             font-size: 28px;
-            font-weight: 600;
+            font-weight: 700;
+            color: white;
+            letter-spacing: -0.5px;
         }
         
         .status-bar {
@@ -66,7 +74,7 @@
         }
         
         .btn {
-            background: #3498db;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
             color: white;
             border: none;
             padding: 10px 20px;
@@ -74,35 +82,37 @@
             cursor: pointer;
             font-size: 14px;
             font-weight: 500;
-            transition: background 0.2s;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(99, 102, 241, 0.2);
         }
         
         .btn:hover {
-            background: #2980b9;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(99, 102, 241, 0.3);
         }
         
         .btn-success {
-            background: #27ae60;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
         }
         
         .btn-success:hover {
-            background: #229954;
+            box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
         }
         
         .btn-danger {
-            background: #e74c3c;
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
         }
         
         .btn-danger:hover {
-            background: #c0392b;
+            box-shadow: 0 4px 8px rgba(239, 68, 68, 0.3);
         }
         
         .btn-secondary {
-            background: #95a5a6;
+            background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);
         }
         
         .btn-secondary:hover {
-            background: #7f8c8d;
+            box-shadow: 0 4px 8px rgba(139, 92, 246, 0.3);
         }
         
         .rules-section {
@@ -123,8 +133,11 @@
         }
         
         .section-header h2 {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             font-size: 22px;
+            font-weight: 600;
             color: #2c3e50;
+            letter-spacing: -0.3px;
         }
         
         .rule-card {
@@ -152,9 +165,11 @@
         }
         
         .rule-title {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             font-size: 18px;
             font-weight: 600;
             color: #2c3e50;
+            letter-spacing: -0.2px;
             flex: 1;
         }
         
@@ -194,7 +209,7 @@
         
         .pattern-tag {
             display: inline-block;
-            background: #3498db;
+            background: #6366f1;
             color: white;
             padding: 4px 10px;
             border-radius: 12px;
@@ -249,8 +264,11 @@
         }
         
         .modal-header h3 {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             font-size: 20px;
+            font-weight: 600;
             color: #2c3e50;
+            letter-spacing: -0.3px;
         }
         
         .modal-close {
@@ -356,7 +374,7 @@
         
         .channel-number {
             font-weight: 600;
-            color: #3498db;
+            color: #6366f1;
             min-width: 60px;
         }
         
@@ -414,7 +432,7 @@
             background: white;
             border-radius: 4px;
             margin-bottom: 8px;
-            border-left: 4px solid #3498db;
+            border-left: 4px solid #6366f1;
         }
         
         .sync-result-stats {
@@ -459,7 +477,7 @@
         }
         
         .collection-count {
-            background: #3498db;
+            background: #6366f1;
             color: white;
             padding: 4px 12px;
             border-radius: 12px;
@@ -498,7 +516,7 @@
         .toggle-channels {
             background: none;
             border: none;
-            color: #3498db;
+            color: #6366f1;
             cursor: pointer;
             font-size: 14px;
             padding: 5px 10px;
@@ -539,7 +557,10 @@
 <body>
     <header>
         <div class="container">
-            <h1>📺 Channels DVR Collection Manager</h1>
+            <div style="display: flex; align-items: center; gap: 20px;">
+                <img src="/static/logo.png" alt="Channels Collection Manager" style="width: 80px; height: 80px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <h1 style="font-size: 28px;">Channels DVR Collection Manager</h1>
+            </div>
         </div>
     </header>
     
@@ -636,20 +657,160 @@
                                 <input type="checkbox" name="match-type" value="number"> Channel Number
                             </label>
                             <label>
-                                <input type="checkbox" name="match-type" value="epg"> EPG (Callsign/Affiliate)
+                                <input type="checkbox" name="match-type" value="epg" disabled> EPG (Callsign/Affiliate) <em style="color: #999; font-size: 12px;">(Not Yet Implemented)</em>
                             </label>
                         </div>
                     </div>
                     
                     <div class="form-group">
                         <label for="pattern-input">Patterns (Regex)</label>
+                        
+                        <!-- Regex Builder -->
+                        <div style="background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                                <strong style="color: #6366f1;">🔧 Pattern Builder</strong>
+                                <button type="button" class="btn btn-secondary" style="padding: 4px 12px; font-size: 12px;" onclick="toggleRegexBuilder()">
+                                    <span id="builder-toggle-text">Show Builder</span>
+                                </button>
+                            </div>
+                            
+                            <div id="regex-builder" style="display: none;">
+                                <!-- Simple/Advanced Mode Toggle -->
+                                <div style="margin-bottom: 15px; display: flex; gap: 10px; align-items: center;">
+                                    <button type="button" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;" onclick="switchBuilderMode('simple')" id="btn-simple-mode">
+                                        Simple
+                                    </button>
+                                    <button type="button" class="btn" style="padding: 6px 12px; font-size: 12px;" onclick="switchBuilderMode('advanced')" id="btn-advanced-mode">
+                                        Advanced (Multiple Conditions)
+                                    </button>
+                                </div>
+                                
+                                <!-- Simple Mode -->
+                                <div id="simple-builder-mode">
+                                    <div style="margin-bottom: 15px;">
+                                        <label style="font-size: 14px; font-weight: 500; margin-bottom: 8px; display: block;">Pattern Type:</label>
+                                        <select id="pattern-type" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" onchange="updateBuilderFields()">
+                                            <option value="">-- Select Pattern Type --</option>
+                                            <option value="contains">Contains text</option>
+                                            <option value="starts">Starts with text</option>
+                                            <option value="ends">Ends with text</option>
+                                            <option value="exact">Exact match</option>
+                                            <option value="any">Any of these words (OR)</option>
+                                            <option value="range">Channel number range</option>
+                                            <option value="exclude">Does NOT contain</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div id="pattern-input-container" style="display: none;">
+                                        <label id="pattern-input-label" style="font-size: 14px; font-weight: 500; margin-bottom: 8px; display: block;">Enter text:</label>
+                                        <input type="text" id="pattern-builder-input" placeholder="e.g., Sport" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 8px;" oninput="updateGeneratedPattern()">
+                                        <small style="color: #666; display: block; margin-bottom: 12px;" id="pattern-hint">Enter your text</small>
+                                        
+                                        <div style="display: flex; gap: 8px;" id="case-sensitive-container">
+                                            <label style="display: flex; align-items: center; gap: 5px; font-size: 13px;">
+                                                <input type="checkbox" id="case-sensitive" onchange="updateGeneratedPattern()">
+                                                Case sensitive
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Advanced Mode -->
+                                <div id="advanced-builder-mode" style="display: none;">
+                                    <div style="background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 12px; margin-bottom: 10px;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                            <strong style="font-size: 14px;">Conditions:</strong>
+                                            <button type="button" class="btn btn-secondary" style="padding: 4px 10px; font-size: 12px;" onclick="addCondition()">
+                                                + Add Condition
+                                            </button>
+                                        </div>
+                                        <div id="conditions-list"></div>
+                                        <small style="color: #666; display: block; margin-top: 8px;">
+                                            💡 All conditions must match (AND logic). Within each condition, use commas for OR.
+                                        </small>
+                                        
+                                        <!-- Examples -->
+                                        <details style="margin-top: 12px; background: white; padding: 10px; border-radius: 4px; border: 1px solid #ddd;">
+                                            <summary style="cursor: pointer; font-weight: 500; font-size: 13px; color: #6366f1;">📚 Examples</summary>
+                                            <div style="margin-top: 8px; font-size: 12px; color: #666;">
+                                                <p style="margin: 8px 0;"><strong>Example 1: Hello OR Goodbye</strong><br>
+                                                Condition 1: Contains → <code>hello, goodbye</code></p>
+                                                
+                                                <p style="margin: 8px 0;"><strong>Example 2: Numbers 1 OR 2 OR 3</strong><br>
+                                                Condition 1: Contains → <code>1, 2, 3</code></p>
+                                                
+                                                <p style="margin: 8px 0;"><strong>Example 3: Contains Hello AND Goodbye (anywhere)</strong><br>
+                                                Condition 1: Contains → <code>hello</code><br>
+                                                Condition 2: Contains → <code>goodbye</code></p>
+                                                
+                                                <p style="margin: 8px 0;"><strong>Example 4: Sport channels NOT for Kids</strong><br>
+                                                Condition 1: Contains → <code>sport</code><br>
+                                                Condition 2: Does NOT contain → <code>kids</code></p>
+                                                
+                                                <p style="margin: 8px 0;"><strong>Example 5: Starts with ESPN OR FOX</strong><br>
+                                                Condition 1: Starts with → <code>ESPN, FOX</code></p>
+                                            </div>
+                                        </details>
+                                    </div>
+                                </div>
+                                
+                                <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #ddd;">
+                                    <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
+                                        <strong style="font-size: 13px;">Generated Pattern:</strong>
+                                        <code id="generated-pattern" style="flex: 1; background: white; padding: 6px 10px; border-radius: 4px; font-size: 13px; color: #6366f1; font-weight: 600; word-break: break-all;">-</code>
+                                    </div>
+                                    
+                                    <!-- Live Preview -->
+                                    <div style="margin-top: 12px; padding: 10px; background: #f8f9fa; border-radius: 4px; border: 1px solid #ddd;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                            <strong style="font-size: 13px;">🔍 Live Preview</strong>
+                                            <button type="button" class="btn btn-secondary" style="padding: 4px 8px; font-size: 11px;" onclick="testBuilderPattern()">
+                                                Test Pattern
+                                            </button>
+                                        </div>
+                                        <div id="builder-preview-result" style="font-size: 12px; color: #666;">
+                                            Click "Test Pattern" to see matching channels
+                                        </div>
+                                    </div>
+                                    
+                                    <button type="button" class="btn" style="width: 100%; margin-top: 12px;" onclick="addGeneratedPattern()">
+                                        ✓ Add This Pattern
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Copy from Rule Dropdown -->
+                        <details style="background: white; border: 1px solid #ddd; border-radius: 6px; padding: 12px; margin-bottom: 12px;">
+                            <summary style="cursor: pointer; font-weight: 500; color: #6366f1; user-select: none;">
+                                📋 Copy Patterns from Another Rule
+                            </summary>
+                            <div style="margin-top: 12px;">
+                                <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 10px;">
+                                    <select id="copy-from-rule-select" style="flex: 1; padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;">
+                                        <option value="">-- Select a rule --</option>
+                                    </select>
+                                </div>
+                                <div id="patterns-to-copy-list" style="margin-top: 10px; display: none;">
+                                    <div style="margin-bottom: 8px; font-weight: 500; font-size: 13px;">Select patterns to copy:</div>
+                                    <div id="patterns-checkboxes"></div>
+                                    <button type="button" class="btn" style="width: 100%; margin-top: 10px;" onclick="copySelectedPatterns()">
+                                        ✓ Copy Selected Patterns
+                                    </button>
+                                </div>
+                            </div>
+                        </details>
+                        
+                        <!-- Manual Pattern Input -->
                         <small style="display: block; color: #666; margin-bottom: 8px;">
-                            Examples: <code>Sport</code> | <code>^ESPN</code> | <code>100-200</code> (number range)
+                            Or enter regex manually: <code>Sport</code> | <code>^ESPN</code> | <code>100-200</code>
                         </small>
                         <div class="pattern-input-group">
                             <input type="text" id="pattern-input" placeholder="e.g., ^ESPN|^FOX Sports or 100-200">
+                            <button type="button" class="btn btn-secondary" onclick="testManualPattern()">Test</button>
                             <button type="button" class="btn btn-secondary" onclick="addPattern()">Add</button>
                         </div>
+                        <div id="manual-pattern-preview" style="margin-top: 10px; display: none; padding: 10px; background: #f8f9fa; border-radius: 4px; border: 1px solid #ddd; font-size: 12px;"></div>
                         <div id="patterns-list" class="patterns-list"></div>
                     </div>
                     
@@ -722,6 +883,40 @@
                     </div>
                     
                     <div class="form-group">
+                        <div style="background: #f8f9fa; border: 1px solid #ddd; border-radius: 6px; padding: 12px;">
+                            <strong style="display: block; margin-bottom: 10px; color: #2c3e50;">Refresh Options</strong>
+                            
+                            <label style="display: flex; align-items: start; gap: 8px; margin-bottom: 8px;">
+                                <input type="checkbox" id="refresh-sources-before-sync" style="margin-top: 3px;"> 
+                                <div>
+                                    <strong>Refresh Sources Before Each Sync</strong>
+                                    <small style="display: block; color: #666; margin-top: 3px;">
+                                        Rescans the selected sources for new/changed channels before syncing this rule.
+                                    </small>
+                                </div>
+                            </label>
+                            
+                            <label style="display: flex; align-items: start; gap: 8px;">
+                                <input type="checkbox" id="refresh-epg-before-sync" style="margin-top: 3px;"> 
+                                <div>
+                                    <strong>Refresh EPG Before Each Sync</strong>
+                                    <small style="display: block; color: #666; margin-top: 3px;">
+                                        Updates the program guide data before syncing this rule.
+                                    </small>
+                                </div>
+                            </label>
+                            
+                            <small style="display: block; color: #666; margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd;">
+                                ⚙️ <strong>Scope:</strong><br>
+                                • If you've selected "Include Sources", only those sources are refreshed<br>
+                                • If you've selected "Exclude Sources", all except those are refreshed<br>
+                                • If no source filters are set, all sources are refreshed<br>
+                                💡 Useful for IPTV sources with frequently changing channels
+                            </small>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
                         <button type="button" class="btn btn-secondary" onclick="previewRule()">Preview Matches</button>
                     </div>
                     
@@ -745,6 +940,81 @@
         let availableSources = [];
         let currentIncludeSources = [];
         let currentExcludeSources = [];
+        let collectionsCache = {};  // Cache collection names
+        let builderMode = 'simple';
+        let advancedConditions = [];
+        
+        function switchBuilderMode(mode) {
+            builderMode = mode;
+            document.getElementById('simple-builder-mode').style.display = mode === 'simple' ? 'block' : 'none';
+            document.getElementById('advanced-builder-mode').style.display = mode === 'advanced' ? 'block' : 'none';
+            
+            // Update button styles
+            document.getElementById('btn-simple-mode').className = mode === 'simple' ? 'btn' : 'btn btn-secondary';
+            document.getElementById('btn-advanced-mode').className = mode === 'advanced' ? 'btn' : 'btn btn-secondary';
+            
+            if (mode === 'advanced' && advancedConditions.length === 0) {
+                addCondition();
+            }
+            
+            updateGeneratedPattern();
+        }
+        
+        function addCondition() {
+            const id = Date.now();
+            advancedConditions.push({
+                id: id,
+                type: 'contains',
+                value: ''
+            });
+            renderConditions();
+            updateGeneratedPattern();
+        }
+        
+        function removeCondition(id) {
+            advancedConditions = advancedConditions.filter(c => c.id !== id);
+            renderConditions();
+            updateGeneratedPattern();
+        }
+        
+        function updateCondition(id, field, value) {
+            const condition = advancedConditions.find(c => c.id === id);
+            if (condition) {
+                condition[field] = value;
+                updateGeneratedPattern();
+            }
+        }
+        
+        function renderConditions() {
+            const container = document.getElementById('conditions-list');
+            if (advancedConditions.length === 0) {
+                container.innerHTML = '<div style="padding: 10px; text-align: center; color: #999;">No conditions yet. Click "Add Condition" to start.</div>';
+                return;
+            }
+            
+            container.innerHTML = advancedConditions.map((cond, index) => `
+                <div style="background: #f8f9fa; padding: 10px; border-radius: 4px; margin-bottom: 8px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                        <strong style="font-size: 12px; color: #6366f1; min-width: 60px;">Condition ${index + 1}:</strong>
+                        <select onchange="updateCondition(${cond.id}, 'type', this.value)" style="flex: 1; padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;">
+                            <option value="contains" ${cond.type === 'contains' ? 'selected' : ''}>Contains</option>
+                            <option value="starts" ${cond.type === 'starts' ? 'selected' : ''}>Starts with</option>
+                            <option value="ends" ${cond.type === 'ends' ? 'selected' : ''}>Ends with</option>
+                            <option value="exclude" ${cond.type === 'exclude' ? 'selected' : ''}>Does NOT contain</option>
+                        </select>
+                        <button type="button" onclick="removeCondition(${cond.id})" style="background: #ef4444; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;">×</button>
+                    </div>
+                    <input type="text" value="${cond.value || ''}" oninput="updateCondition(${cond.id}, 'value', this.value)" placeholder="Enter text (use commas for OR: hello, goodbye)" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; margin-bottom: 6px;">
+                    <label style="display: flex; align-items: center; gap: 5px; font-size: 12px; margin-bottom: 4px;">
+                        <input type="checkbox" ${cond.caseSensitive ? 'checked' : ''} onchange="updateCondition(${cond.id}, 'caseSensitive', this.checked)">
+                        Case sensitive
+                    </label>
+                    <small style="display: block; color: #666; font-size: 11px;">
+                        💡 Separate multiple values with commas for OR logic (e.g., "hello, goodbye" or "1, 2, 3")
+                    </small>
+                </div>
+            `).join('');
+        }
         
         function toggleCustomSortInput() {
             const sortOrder = document.getElementById('sort-order').value;
@@ -753,6 +1023,401 @@
                 customInput.style.display = 'block';
             } else {
                 customInput.style.display = 'none';
+            }
+        }
+        
+        function toggleRegexBuilder() {
+            const builder = document.getElementById('regex-builder');
+            const toggleText = document.getElementById('builder-toggle-text');
+            
+            if (builder.style.display === 'none') {
+                builder.style.display = 'block';
+                toggleText.textContent = 'Hide Builder';
+            } else {
+                builder.style.display = 'none';
+                toggleText.textContent = 'Show Builder';
+            }
+        }
+        
+        function updateBuilderFields() {
+            const type = document.getElementById('pattern-type').value;
+            const container = document.getElementById('pattern-input-container');
+            const label = document.getElementById('pattern-input-label');
+            const input = document.getElementById('pattern-builder-input');
+            const hint = document.getElementById('pattern-hint');
+            const caseContainer = document.getElementById('case-sensitive-container');
+            
+            if (!type) {
+                container.style.display = 'none';
+                document.getElementById('generated-pattern').textContent = '-';
+                return;
+            }
+            
+            container.style.display = 'block';
+            input.value = '';
+            document.getElementById('case-sensitive').checked = false;
+            
+            const config = {
+                'contains': {
+                    label: 'Enter text to find:',
+                    placeholder: 'e.g., Sport',
+                    hint: 'Matches any channel containing this text anywhere in the name',
+                    showCase: true
+                },
+                'starts': {
+                    label: 'Enter starting text:',
+                    placeholder: 'e.g., ESPN',
+                    hint: 'Matches channels that START with this text',
+                    showCase: true
+                },
+                'ends': {
+                    label: 'Enter ending text:',
+                    placeholder: 'e.g., HD',
+                    hint: 'Matches channels that END with this text',
+                    showCase: true
+                },
+                'exact': {
+                    label: 'Enter exact name:',
+                    placeholder: 'e.g., ESPN HD',
+                    hint: 'Matches only channels with this EXACT name',
+                    showCase: true
+                },
+                'any': {
+                    label: 'Enter words separated by commas:',
+                    placeholder: 'e.g., Sport, ESPN, FOX',
+                    hint: 'Matches channels containing ANY of these words',
+                    showCase: true
+                },
+                'range': {
+                    label: 'Enter channel number range:',
+                    placeholder: 'e.g., 100-200 or 5.1-5.9',
+                    hint: 'Matches channels within this number range (use hyphen)',
+                    showCase: false
+                },
+                'exclude': {
+                    label: 'Enter text to exclude:',
+                    placeholder: 'e.g., Kids',
+                    hint: 'Matches channels that do NOT contain this text',
+                    showCase: true
+                }
+            };
+            
+            const cfg = config[type];
+            label.textContent = cfg.label;
+            input.placeholder = cfg.placeholder;
+            hint.textContent = cfg.hint;
+            caseContainer.style.display = cfg.showCase ? 'flex' : 'none';
+            
+            updateGeneratedPattern();
+        }
+        
+        function updateGeneratedPattern() {
+            const output = document.getElementById('generated-pattern');
+            
+            if (builderMode === 'simple') {
+                const type = document.getElementById('pattern-type').value;
+                const input = document.getElementById('pattern-builder-input').value.trim();
+                const caseSensitive = document.getElementById('case-sensitive').checked;
+                
+                if (!type || !input) {
+                    output.textContent = '-';
+                    return;
+                }
+                
+                let pattern = '';
+                const escaped = input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                
+                switch(type) {
+                    case 'contains':
+                        pattern = escaped;
+                        break;
+                    case 'starts':
+                        pattern = '^' + escaped;
+                        break;
+                    case 'ends':
+                        pattern = escaped + '$';
+                        break;
+                    case 'exact':
+                        pattern = '^' + escaped + '$';
+                        break;
+                    case 'any':
+                        const words = input.split(',').map(w => w.trim()).filter(w => w);
+                        pattern = words.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+                        break;
+                    case 'range':
+                        pattern = input;
+                        break;
+                    case 'exclude':
+                        pattern = '^(?!.*' + escaped + ').*$';
+                        break;
+                }
+                
+                // Add case-insensitive flag if not case sensitive
+                if (!caseSensitive && pattern && type !== 'range') {
+                    pattern = '(?i)' + pattern;
+                }
+                
+                output.textContent = pattern || '-';
+            } else {
+                // Advanced mode - combine multiple conditions
+                if (advancedConditions.length === 0 || advancedConditions.every(c => !c.value)) {
+                    output.textContent = '-';
+                    return;
+                }
+                
+                const validConditions = advancedConditions.filter(c => c.value && c.value.trim());
+                if (validConditions.length === 0) {
+                    output.textContent = '-';
+                    return;
+                }
+                
+                // Build complex regex with lookaheads
+                let pattern = '';
+                const containsParts = [];
+                const excludeParts = [];
+                let startsWithPart = null;
+                let endsWithPart = null;
+                
+                validConditions.forEach(cond => {
+                    const values = cond.value.trim().split(',').map(v => v.trim()).filter(v => v);
+                    
+                    if (values.length === 0) return;
+                    
+                    // Escape each value
+                    const escapedValues = values.map(v => v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+                    
+                    // If multiple values, use OR (alternation)
+                    let partPattern = escapedValues.length > 1 ? `(${escapedValues.join('|')})` : escapedValues[0];
+                    
+                    // Add case-insensitive flag if not case sensitive
+                    if (!cond.caseSensitive) {
+                        partPattern = '(?i:' + partPattern + ')';
+                    }
+                    
+                    switch(cond.type) {
+                        case 'contains':
+                            containsParts.push(`(?=.*${partPattern})`);
+                            break;
+                        case 'exclude':
+                            // For exclude with multiple values, exclude if ANY match
+                            if (escapedValues.length > 1) {
+                                const excludePattern = !cond.caseSensitive ? `(?i:(${escapedValues.join('|')}))` : `(${escapedValues.join('|')})`;
+                                excludeParts.push(`(?!.*${excludePattern})`);
+                            } else {
+                                excludeParts.push(`(?!.*${partPattern})`);
+                            }
+                            break;
+                        case 'starts':
+                            startsWithPart = partPattern;
+                            break;
+                        case 'ends':
+                            endsWithPart = partPattern;
+                            break;
+                    }
+                });
+                
+                // Combine all lookaheads at the start
+                const lookaheads = [...excludeParts, ...containsParts].join('');
+                
+                // Build the main pattern
+                let mainPattern = '';
+                if (startsWithPart && endsWithPart) {
+                    mainPattern = `${startsWithPart}.*${endsWithPart}`;
+                } else if (startsWithPart) {
+                    mainPattern = `${startsWithPart}.*`;
+                } else if (endsWithPart) {
+                    mainPattern = `.*${endsWithPart}`;
+                } else {
+                    mainPattern = '.*';
+                }
+                
+                pattern = `^${lookaheads}${mainPattern}$`;
+                output.textContent = pattern;
+            }
+        }
+        
+        function addGeneratedPattern() {
+            const pattern = document.getElementById('generated-pattern').textContent;
+            if (pattern && pattern !== '-') {
+                currentPatterns.push(pattern);
+                displayPatterns();
+                
+                // Reset builder
+                document.getElementById('pattern-type').value = '';
+                document.getElementById('pattern-builder-input').value = '';
+                document.getElementById('generated-pattern').textContent = '-';
+                document.getElementById('builder-preview-result').innerHTML = 'Click "Test Pattern" to see matching channels';
+                updateBuilderFields();
+                
+                showAlert('Pattern added!', 'success');
+            }
+        }
+        
+        async function testBuilderPattern() {
+            const pattern = document.getElementById('generated-pattern').textContent;
+            const resultDiv = document.getElementById('builder-preview-result');
+            
+            if (!pattern || pattern === '-') {
+                resultDiv.innerHTML = '<span style="color: #e74c3c;">Please create a pattern first</span>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<span style="color: #666;">⏳ Testing pattern...</span>';
+            
+            try {
+                const matchTypes = Array.from(document.querySelectorAll('input[name="match-type"]:checked')).map(cb => cb.value);
+                
+                const response = await fetch('/api/preview', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        patterns: [pattern],
+                        match_types: matchTypes.length > 0 ? matchTypes : ['name'],
+                        include_sources: currentIncludeSources,
+                        exclude_sources: currentExcludeSources
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Preview failed');
+                }
+                
+                const data = await response.json();
+                const channels = data.channels || [];
+                
+                if (channels.length === 0) {
+                    resultDiv.innerHTML = '<span style="color: #e67e22;">⚠️ No channels match this pattern</span>';
+                } else {
+                    resultDiv.innerHTML = `
+                        <div style="color: #27ae60; margin-bottom: 6px;"><strong>✓ ${channels.length} channel${channels.length > 1 ? 's' : ''} match</strong></div>
+                        <div style="max-height: 200px; overflow-y: auto; font-size: 11px; color: #555; border: 1px solid #ddd; border-radius: 4px; padding: 8px; background: white;">
+                            ${channels.map(ch => `<div style="padding: 2px 0;">• ${ch.number ? ch.number + ' - ' : ''}${ch.name}</div>`).join('')}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error testing pattern:', error);
+                resultDiv.innerHTML = '<span style="color: #e74c3c;">Error testing pattern</span>';
+            }
+        }
+        
+        async function populateCopyRulesDropdown() {
+            const dropdown = document.getElementById('copy-from-rule-select');
+            const patternsList = document.getElementById('patterns-to-copy-list');
+            
+            if (!dropdown) return; // Element not in DOM yet
+            
+            // Reset
+            dropdown.innerHTML = '<option value="">-- Select a rule --</option>';
+            if (patternsList) patternsList.style.display = 'none';
+            
+            try {
+                const response = await fetch('/api/rules');
+                if (!response.ok) return;
+                
+                const rules = await response.json();
+                
+                // Filter to rules with patterns (exclude current rule if editing)
+                const availableRules = rules.filter(r => 
+                    r.id !== editingRuleId && 
+                    r.patterns && 
+                    r.patterns.length > 0
+                );
+                
+                if (availableRules.length === 0) {
+                    dropdown.innerHTML = '<option value="">-- No other rules with patterns available --</option>';
+                    return;
+                }
+                
+                // Add options
+                availableRules.forEach(rule => {
+                    const option = document.createElement('option');
+                    option.value = rule.id;
+                    option.textContent = `${rule.name} (${rule.patterns.length} pattern${rule.patterns.length > 1 ? 's' : ''})`;
+                    option.dataset.patterns = JSON.stringify(rule.patterns);
+                    dropdown.appendChild(option);
+                });
+                
+            } catch (error) {
+                console.error('Error loading rules:', error);
+            }
+        }
+        
+        // Update preview when dropdown changes
+        document.addEventListener('DOMContentLoaded', function() {
+            // ESC key to close rule modal
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    const modal = document.getElementById('rule-modal');
+                    if (modal && modal.classList.contains('active')) {
+                        closeRuleModal();
+                    }
+                }
+            });
+            
+            const dropdown = document.getElementById('copy-from-rule-select');
+            if (dropdown) {
+                dropdown.addEventListener('change', function() {
+                    const patternsList = document.getElementById('patterns-to-copy-list');
+                    const checkboxes = document.getElementById('patterns-checkboxes');
+                    
+                    if (this.value && this.selectedOptions[0].dataset.patterns) {
+                        const patterns = JSON.parse(this.selectedOptions[0].dataset.patterns);
+                        
+                        checkboxes.innerHTML = patterns.map((p, idx) => `
+                            <label style="display: flex; align-items: center; gap: 8px; padding: 6px; background: #f8f9fa; border-radius: 4px; margin-bottom: 4px; cursor: pointer;">
+                                <input type="checkbox" value="${idx}" checked style="cursor: pointer;">
+                                <code style="flex: 1; background: white; padding: 4px 8px; border-radius: 3px; font-size: 12px; border: 1px solid #ddd;">${p}</code>
+                            </label>
+                        `).join('');
+                        
+                        patternsList.style.display = 'block';
+                    } else {
+                        patternsList.style.display = 'none';
+                    }
+                });
+            }
+        });
+        
+        function copySelectedPatterns() {
+            const dropdown = document.getElementById('copy-from-rule-select');
+            
+            if (!dropdown.value) {
+                showAlert('Please select a rule first', 'error');
+                return;
+            }
+            
+            const selectedOption = dropdown.selectedOptions[0];
+            const patterns = JSON.parse(selectedOption.dataset.patterns);
+            const ruleName = selectedOption.textContent.split(' (')[0];
+            
+            // Get selected checkboxes
+            const checkboxes = document.querySelectorAll('#patterns-checkboxes input[type="checkbox"]:checked');
+            const selectedIndices = Array.from(checkboxes).map(cb => parseInt(cb.value));
+            
+            if (selectedIndices.length === 0) {
+                showAlert('Please select at least one pattern', 'error');
+                return;
+            }
+            
+            let addedCount = 0;
+            selectedIndices.forEach(idx => {
+                const pattern = patterns[idx];
+                if (!currentPatterns.includes(pattern)) {
+                    currentPatterns.push(pattern);
+                    addedCount++;
+                }
+            });
+            
+            displayPatterns();
+            
+            if (addedCount > 0) {
+                showAlert(`Copied ${addedCount} pattern(s) from "${ruleName}"`, 'success');
+                // Reset
+                dropdown.value = '';
+                document.getElementById('patterns-to-copy-list').style.display = 'none';
+            } else {
+                showAlert('All selected patterns are already added', 'info');
             }
         }
         
@@ -848,8 +1513,132 @@
             }
         }
         
+        async function previewRuleById(ruleId) {
+            try {
+                // Find the rule
+                const response = await fetch('/api/rules');
+                const rules = await response.json();
+                const rule = rules.find(r => r.id === ruleId);
+                
+                if (!rule) {
+                    showAlert('Rule not found', 'error');
+                    return;
+                }
+                
+                // Show loading state
+                const previewModal = document.createElement('div');
+                previewModal.id = 'preview-modal';
+                previewModal.className = 'modal';
+                previewModal.style.display = 'flex';
+                previewModal.style.position = 'fixed';
+                previewModal.style.top = '0';
+                previewModal.style.left = '0';
+                previewModal.style.width = '100%';
+                previewModal.style.height = '100%';
+                previewModal.style.zIndex = '9999';
+                previewModal.innerHTML = `
+                    <div class="modal-overlay" onclick="closePreviewModal()" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999;"></div>
+                    <div class="modal-content" style="position: relative; max-width: 900px; max-height: 90vh; overflow-y: auto; z-index: 10000; margin: auto;">
+                        <div class="modal-header">
+                            <h2>Preview: ${rule.name}</h2>
+                            <button class="modal-close" onclick="closePreviewModal()">✕</button>
+                        </div>
+                        <div class="modal-body">
+                            <div style="text-align: center; padding: 40px;">
+                                <div class="loading">Loading preview...</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(previewModal);
+            
+                // Create preview request
+                const ruleData = {
+                    patterns: rule.patterns,
+                    match_types: rule.match_types,
+                    sort_order: rule.sort_order || 'none',
+                    include_sources: rule.include_sources || [],
+                    exclude_sources: rule.exclude_sources || []
+                };
+                
+                try {
+                    const previewResponse = await fetch('/api/preview', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(ruleData)
+                    });
+                    const data = await previewResponse.json();
+                    
+                    const sortLabel = getSortOrderLabel(data.sort_order || 'none');
+                    const collectionName = collectionsCache[rule.collection_slug] || `Collection ${rule.collection_slug}`;
+                    
+                    // Build preview HTML
+                    let html = `
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                                <div>
+                                    <strong>Collection:</strong><br>
+                                    ${collectionName}
+                                </div>
+                                <div>
+                                    <strong>Sort Order:</strong><br>
+                                    ${sortLabel}
+                                </div>
+                                <div>
+                                    <strong>Total Matches:</strong><br>
+                                    ${data.total} channels
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    if (data.total === 0) {
+                        html += '<div style="text-align: center; padding: 40px; color: #999;">No matching channels found</div>';
+                    } else {
+                        html += '<div class="preview-channels" style="max-height: 500px; overflow-y: auto;">';
+                        data.channels.forEach(ch => {
+                            html += `
+                                <div class="channel-item" style="padding: 12px; border-bottom: 1px solid #ecf0f1; display: flex; justify-content: space-between;">
+                                    <div>
+                                        <span style="color: #6366f1; font-weight: bold; margin-right: 10px;">${ch.number}</span>
+                                        <span>${ch.name}</span>
+                                    </div>
+                                    <div style="color: #999; font-size: 12px;">${ch.device || ''}</div>
+                                </div>
+                            `;
+                        });
+                        html += '</div>';
+                    }
+                    
+                    previewModal.querySelector('.modal-body').innerHTML = html;
+                } catch (error) {
+                    console.error('Error previewing rule:', error);
+                    previewModal.querySelector('.modal-body').innerHTML = `
+                        <div style="text-align: center; padding: 40px; color: #e74c3c;">
+                            Error loading preview. Please try again.
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error in previewRuleById:', error);
+                showAlert('Error loading preview', 'error');
+            }
+        }
+        
+        function closePreviewModal() {
+            const modal = document.getElementById('preview-modal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+        
         async function loadRules() {
             try {
+                // Load collections first to populate the cache
+                if (Object.keys(collectionsCache).length === 0) {
+                    await loadCollections();
+                }
+                
                 const response = await fetch('/api/rules');
                 const rules = await response.json();
                 displayRules(rules);
@@ -884,11 +1673,15 @@
                 return;
             }
             
-            container.innerHTML = rules.map(rule => `
+            container.innerHTML = rules.map(rule => {
+                const collectionName = collectionsCache[rule.collection_slug] || `Collection ${rule.collection_slug}`;
+                return `
                 <div class="rule-card ${!rule.enabled ? 'disabled' : ''}">
                     <div class="rule-header">
                         <div class="rule-title">${rule.name}</div>
                         <div class="rule-actions">
+                            <button class="btn btn-secondary" onclick="previewRuleById('${rule.id}')">👁️ Preview</button>
+                            <button class="btn btn-secondary" onclick="cloneRule('${rule.id}')">📋 Clone</button>
                             <button class="btn" onclick="editRule('${rule.id}')">Edit</button>
                             <button class="btn btn-danger" onclick="deleteRule('${rule.id}')">Delete</button>
                         </div>
@@ -896,7 +1689,7 @@
                     <div class="rule-info">
                         <div class="rule-info-item">
                             <span class="rule-info-label">Collection:</span>
-                            ${rule.collection_slug}
+                            ${collectionName}
                         </div>
                         <div class="rule-info-item">
                             <span class="rule-info-label">Sort:</span>
@@ -922,7 +1715,7 @@
                         </div>
                     </div>
                 </div>
-            `).join('');
+            `}).join('');
         }
         
         async function loadCollections() {
@@ -931,6 +1724,12 @@
                 const response = await fetch('/api/collections');
                 const collections = await response.json();
                 console.log('Collections fetched:', collections);
+                
+                // Cache collections for lookup
+                collectionsCache = {};
+                collections.forEach(c => {
+                    collectionsCache[c.slug] = c.name;
+                });
                 
                 const select = document.getElementById('collection-slug');
                 console.log('Select element:', select);
@@ -995,6 +1794,10 @@
             const syncInterval = ruleData ? ruleData.sync_interval_minutes : null;
             document.getElementById('sync-interval-override').value = syncInterval || '';
             
+            // Set refresh options
+            document.getElementById('refresh-sources-before-sync').checked = ruleData ? (ruleData.refresh_sources_before_sync || false) : false;
+            document.getElementById('refresh-epg-before-sync').checked = ruleData ? (ruleData.refresh_epg_before_sync || false) : false;
+            
             // Update global sync interval display
             fetch('/api/status')
                 .then(r => r.json())
@@ -1020,6 +1823,9 @@
             document.getElementById('preview-section').style.display = 'none';
             document.getElementById('rule-modal').classList.add('active');
             
+            // Populate copy rules dropdown
+            populateCopyRulesDropdown();
+            
             const selectElement = document.getElementById('collection-slug');
             console.log('Select element in modal:', selectElement);
             console.log('Select has', selectElement ? selectElement.options.length : 'NULL', 'options');
@@ -1041,6 +1847,16 @@
             document.getElementById('rule-modal').classList.remove('active');
             document.getElementById('rule-form').reset();
             currentPatterns = [];
+            
+            // Reset advanced builder
+            advancedConditions = [];
+            renderConditions();
+            
+            // Reset simple builder
+            document.getElementById('pattern-type').value = '';
+            document.getElementById('pattern-builder-input').value = '';
+            document.getElementById('generated-pattern').textContent = '-';
+            updateBuilderFields();
         }
         
         function addPattern() {
@@ -1051,6 +1867,59 @@
                 currentPatterns.push(pattern);
                 displayPatterns();
                 input.value = '';
+                // Clear manual preview
+                document.getElementById('manual-pattern-preview').style.display = 'none';
+            }
+        }
+        
+        async function testManualPattern() {
+            const input = document.getElementById('pattern-input');
+            const pattern = input.value.trim();
+            const previewDiv = document.getElementById('manual-pattern-preview');
+            
+            if (!pattern) {
+                previewDiv.innerHTML = '<span style="color: #e74c3c;">Please enter a pattern first</span>';
+                previewDiv.style.display = 'block';
+                return;
+            }
+            
+            previewDiv.innerHTML = '<span style="color: #666;">⏳ Testing pattern...</span>';
+            previewDiv.style.display = 'block';
+            
+            try {
+                const matchTypes = Array.from(document.querySelectorAll('input[name="match-type"]:checked')).map(cb => cb.value);
+                
+                const response = await fetch('/api/preview', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        patterns: [pattern],
+                        match_types: matchTypes.length > 0 ? matchTypes : ['name'],
+                        include_sources: currentIncludeSources,
+                        exclude_sources: currentExcludeSources
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Preview failed');
+                }
+                
+                const data = await response.json();
+                const channels = data.channels || [];
+                
+                if (channels.length === 0) {
+                    previewDiv.innerHTML = '<span style="color: #e67e22;">⚠️ No channels match this pattern</span>';
+                } else {
+                    previewDiv.innerHTML = `
+                        <div style="color: #27ae60; margin-bottom: 6px;"><strong>✓ ${channels.length} channel${channels.length > 1 ? 's' : ''} match</strong></div>
+                        <div style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; padding: 8px; background: white;">
+                            ${channels.map(ch => `<div style="padding: 2px 0; font-size: 11px;">• ${ch.number ? ch.number + ' - ' : ''}${ch.name}</div>`).join('')}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error testing pattern:', error);
+                previewDiv.innerHTML = '<span style="color: #e74c3c;">Error testing pattern</span>';
             }
         }
         
@@ -1069,9 +1938,23 @@
             container.innerHTML = currentPatterns.map((pattern, index) => `
                 <div class="pattern-item">
                     <code>${pattern}</code>
-                    <button type="button" class="btn btn-danger" style="padding: 4px 8px; font-size: 12px;" onclick="removePattern(${index})">Remove</button>
+                    <div style="display: flex; gap: 4px;">
+                        <button type="button" class="btn btn-secondary" style="padding: 4px 8px; font-size: 12px;" onclick="editPattern(${index})">Edit</button>
+                        <button type="button" class="btn btn-danger" style="padding: 4px 8px; font-size: 12px;" onclick="removePattern(${index})">Remove</button>
+                    </div>
                 </div>
             `).join('');
+        }
+        
+        function editPattern(index) {
+            const pattern = currentPatterns[index];
+            const newPattern = prompt('Edit pattern:', pattern);
+            
+            if (newPattern && newPattern.trim() && newPattern !== pattern) {
+                currentPatterns[index] = newPattern.trim();
+                displayPatterns();
+                showAlert('Pattern updated', 'success');
+            }
         }
         
         async function previewRule() {
@@ -1116,7 +1999,7 @@
                 const sortLabel = getSortOrderLabel(data.sort_order || 'none');
                 const headerDiv = document.getElementById('preview-section').querySelector('.preview-header');
                 if (data.sort_order && data.sort_order !== 'none') {
-                    headerDiv.innerHTML = `Preview: <span id="preview-count">${data.total}</span> matching channels <span style="color: #3498db;">(Sorted: ${sortLabel})</span>`;
+                    headerDiv.innerHTML = `Preview: <span id="preview-count">${data.total}</span> matching channels <span style="color: #6366f1;">(Sorted: ${sortLabel})</span>`;
                 } else {
                     headerDiv.innerHTML = `Preview: <span id="preview-count">${data.total}</span> matching channels`;
                 }
@@ -1176,7 +2059,9 @@
                 sync_interval_minutes: syncIntervalMinutes,
                 include_sources: currentIncludeSources,
                 exclude_sources: currentExcludeSources,
-                enabled: document.getElementById('rule-enabled').checked
+                enabled: document.getElementById('rule-enabled').checked,
+                refresh_sources_before_sync: document.getElementById('refresh-sources-before-sync').checked,
+                refresh_epg_before_sync: document.getElementById('refresh-epg-before-sync').checked
             };
             
             try {
@@ -1242,6 +2127,34 @@
             } catch (error) {
                 console.error('Error deleting rule:', error);
                 showAlert('Error deleting rule', 'error');
+            }
+        }
+        
+        async function cloneRule(ruleId) {
+            try {
+                const response = await fetch('/api/rules');
+                const rules = await response.json();
+                const rule = rules.find(r => r.id === ruleId);
+                
+                if (!rule) {
+                    showAlert('Rule not found', 'error');
+                    return;
+                }
+                
+                // Create a copy of the rule with modified name
+                const clonedRule = {
+                    ...rule,
+                    name: rule.name + ' (Copy)',
+                    id: undefined // Remove ID so a new one is created
+                };
+                
+                // Open the rule modal with the cloned data
+                openRuleModal(clonedRule);
+                showAlert('Rule cloned! Make any changes and click Save.', 'success');
+                
+            } catch (error) {
+                console.error('Error cloning rule:', error);
+                showAlert('Error cloning rule', 'error');
             }
         }
         
@@ -1511,5 +2424,20 @@
         // Refresh status every 30 seconds
         setInterval(loadStatus, 30000);
     </script>
+    
+    <footer style="text-align: center; padding: 30px 20px; color: #7f8c8d; font-size: 14px; border-top: 1px solid #ecf0f1; margin-top: 40px; background: #fff;">
+        <div style="margin-bottom: 10px;">
+            Channels DVR Collection Manager <span id="app-version">v1.0.1</span>
+        </div>
+        <div>
+            <a href="https://github.com/CurtisFeatures/channels-dvr-collection-manager" target="_blank" style="color: #6366f1; text-decoration: none;">
+                📖 Documentation & Support on GitHub
+            </a>
+            |
+            <a href="https://github.com/CurtisFeatures/channels-dvr-collection-manager/issues" target="_blank" style="color: #6366f1; text-decoration: none;">
+                🐛 Report Issues
+            </a>
+        </div>
+    </footer>
 </body>
 </html>
