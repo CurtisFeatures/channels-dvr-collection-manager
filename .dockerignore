@@ -1,0 +1,46 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+*.md
+!README.md
+docs/
+screenshots/
+
+# Development files
+.env
+.env.example
+.vscode/
+.idea/
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Testing
+tests/
+*.postman_collection.json
+DVR_API_TESTS.md
+POSTMAN_TESTS.md
+
+# Data
+config/
+*.json
+!example-rules.json
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+docker-compose.yml
