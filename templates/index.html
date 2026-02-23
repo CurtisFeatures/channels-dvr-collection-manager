@@ -157,6 +157,57 @@
             background: #f9f9f9;
         }
         
+        /* Toggle Switch */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+            flex-shrink: 0;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .3s;
+            border-radius: 24px;
+        }
+        
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+        
+        .toggle-switch input:checked + .toggle-slider {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(20px);
+        }
+        
+        .toggle-switch:hover .toggle-slider {
+            box-shadow: 0 0 8px rgba(102, 126, 234, 0.4);
+        }
+        
         .rule-header {
             display: flex;
             justify-content: space-between;
@@ -593,7 +644,25 @@
         <div class="rules-section">
             <div class="section-header">
                 <h2>⚙️ Collection Rules</h2>
-                <button class="btn" onclick="openRuleModal()">+ Add Rule</button>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <!-- Search -->
+                    <input type="text" id="rule-search" placeholder="🔍 Search rules..." style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; min-width: 200px;" oninput="filterRules()">
+                    
+                    <!-- Group Filter -->
+                    <select id="group-filter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px;" onchange="filterRules()">
+                        <option value="all">All Groups</option>
+                    </select>
+                    
+                    <!-- Templates -->
+                    <button class="btn btn-secondary" onclick="showTemplatesModal()">📑 Templates</button>
+                    
+                    <!-- Import/Export -->
+                    <button class="btn btn-secondary" onclick="showImportModal()">📥 Import</button>
+                    <button class="btn btn-secondary" onclick="exportRules()">📤 Export</button>
+                    
+                    <!-- Add Rule -->
+                    <button class="btn" onclick="openRuleModal()">+ Add Rule</button>
+                </div>
             </div>
             
             <div id="rules-list">
@@ -624,6 +693,82 @@
         </div>
     </div>
     
+    <!-- Import Modal -->
+    <div id="import-modal" class="modal">
+        <div class="modal-overlay" onclick="closeImportModal()"></div>
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2>📥 Import Rules</h2>
+                <button class="modal-close" onclick="closeImportModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <form id="import-form" onsubmit="handleImport(event)">
+                    <div class="form-group">
+                        <label for="import-file">Select Export File:</label>
+                        <input type="file" id="import-file" accept=".json" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        <small style="display: block; color: #666; margin-top: 5px;">
+                            Choose a JSON file exported from Channels Collection Manager
+                        </small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Import Mode:</label>
+                        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 8px;">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="radio" name="import-mode" value="merge" checked>
+                                <div>
+                                    <strong>Merge</strong>
+                                    <small style="display: block; color: #666;">Add imported rules to existing rules (recommended)</small>
+                                </div>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="radio" name="import-mode" value="replace">
+                                <div>
+                                    <strong>Replace</strong>
+                                    <small style="display: block; color: #666;">⚠️ Delete all existing rules and replace with imported rules</small>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div id="import-preview" style="display: none; padding: 12px; background: #f8f9fa; border-radius: 6px; margin-top: 15px;">
+                        <strong>Preview:</strong>
+                        <div id="import-preview-content" style="margin-top: 8px; font-size: 14px;"></div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px; margin-top: 20px;">
+                        <button type="submit" class="btn" style="flex: 1;">Import Rules</button>
+                        <button type="button" class="btn btn-secondary" onclick="closeImportModal()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Templates Modal -->
+    <div id="templates-modal" class="modal">
+        <div class="modal-overlay" onclick="closeTemplatesModal()"></div>
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h2>📑 Rule Templates</h2>
+                <button class="modal-close" onclick="closeTemplatesModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <p style="color: #666; margin-bottom: 15px;">
+                    Save pattern combinations as templates for quick reuse. Templates include patterns, match types, and sort order.
+                </p>
+                
+                <div id="templates-list" style="max-height: 400px; overflow-y: auto;">
+                    <div class="loading">Loading templates...</div>
+                </div>
+                
+                <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd;">
+                    <button type="button" class="btn btn-secondary" onclick="closeTemplatesModal()">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <!-- Rule Modal -->
     <div id="rule-modal" class="modal">
         <div class="modal-content">
@@ -638,6 +783,17 @@
                     <div class="form-group">
                         <label for="rule-name">Rule Name</label>
                         <input type="text" id="rule-name" required placeholder="e.g., Sports Channels">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="rule-group">Group/Folder (Optional)</label>
+                        <input type="text" id="rule-group" list="group-suggestions" placeholder="e.g., Sports, News, Entertainment">
+                        <datalist id="group-suggestions">
+                            <!-- Populated dynamically -->
+                        </datalist>
+                        <small style="display: block; color: #666; margin-top: 5px;">
+                            Organize rules into groups. Leave blank for no grouping.
+                        </small>
                     </div>
                     
                     <div class="form-group">
@@ -917,7 +1073,80 @@
                     </div>
                     
                     <div class="form-group">
-                        <button type="button" class="btn btn-secondary" onclick="previewRule()">Preview Matches</button>
+                        <div style="background: #f8f9fa; border: 1px solid #ddd; border-radius: 6px; padding: 12px;">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                                <input type="checkbox" id="schedule-enabled" onchange="toggleScheduleFields()">
+                                <strong style="color: #2c3e50;">🕐 Schedule (Optional)</strong>
+                            </div>
+                            
+                            <div id="schedule-fields" style="display: none;">
+                                <small style="display: block; color: #666; margin-bottom: 12px;">
+                                    Rule will only sync during the selected days and time window
+                                </small>
+                                
+                                <div style="margin-bottom: 12px;">
+                                    <strong style="display: block; margin-bottom: 8px; font-size: 13px;">Days of Week:</strong>
+                                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 8px;">
+                                        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                                            <input type="checkbox" name="schedule-day" value="monday">
+                                            <span>Monday</span>
+                                        </label>
+                                        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                                            <input type="checkbox" name="schedule-day" value="tuesday">
+                                            <span>Tuesday</span>
+                                        </label>
+                                        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                                            <input type="checkbox" name="schedule-day" value="wednesday">
+                                            <span>Wednesday</span>
+                                        </label>
+                                        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                                            <input type="checkbox" name="schedule-day" value="thursday">
+                                            <span>Thursday</span>
+                                        </label>
+                                        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                                            <input type="checkbox" name="schedule-day" value="friday">
+                                            <span>Friday</span>
+                                        </label>
+                                        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                                            <input type="checkbox" name="schedule-day" value="saturday">
+                                            <span>Saturday</span>
+                                        </label>
+                                        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                                            <input type="checkbox" name="schedule-day" value="sunday">
+                                            <span>Sunday</span>
+                                        </label>
+                                    </div>
+                                    <small style="display: block; color: #666; margin-top: 6px;">
+                                        Leave all unchecked to run every day
+                                    </small>
+                                </div>
+                                
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                                    <div>
+                                        <label for="schedule-start-time" style="display: block; margin-bottom: 4px; font-size: 13px;"><strong>Start Time:</strong></label>
+                                        <input type="time" id="schedule-start-time" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+                                    </div>
+                                    <div>
+                                        <label for="schedule-end-time" style="display: block; margin-bottom: 4px; font-size: 13px;"><strong>End Time:</strong></label>
+                                        <input type="time" id="schedule-end-time" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+                                    </div>
+                                </div>
+                                
+                                <small style="display: block; color: #666; margin-top: 8px;">
+                                    💡 <strong>Examples:</strong><br>
+                                    • Business hours: 09:00 - 17:00<br>
+                                    • Overnight: 22:00 - 06:00 (crosses midnight)<br>
+                                    • Leave blank to run at any time
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <div style="display: flex; gap: 10px;">
+                            <button type="button" class="btn btn-secondary" onclick="previewRule()">Preview Matches</button>
+                            <button type="button" class="btn btn-secondary" onclick="saveAsTemplate()">💾 Save as Template</button>
+                        </div>
                     </div>
                     
                     <div id="preview-section" class="preview-section" style="display: none;">
@@ -936,6 +1165,7 @@
     
     <script>
         let currentPatterns = [];
+        let patternMetadata = {}; // Store builder config for each pattern
         let editingRuleId = null;
         let availableSources = [];
         let currentIncludeSources = [];
@@ -1240,6 +1470,26 @@
             const pattern = document.getElementById('generated-pattern').textContent;
             if (pattern && pattern !== '-') {
                 currentPatterns.push(pattern);
+                
+                // Store metadata for this pattern
+                const isSimpleMode = document.getElementById('simple-builder-mode').style.display !== 'none';
+                
+                if (isSimpleMode) {
+                    // Store simple mode metadata
+                    patternMetadata[pattern] = {
+                        mode: 'simple',
+                        type: document.getElementById('pattern-type').value,
+                        value: document.getElementById('pattern-builder-input').value,
+                        caseSensitive: document.getElementById('case-sensitive')?.checked || false
+                    };
+                } else {
+                    // Store advanced mode metadata
+                    patternMetadata[pattern] = {
+                        mode: 'advanced',
+                        conditions: JSON.parse(JSON.stringify(advancedConditions)) // Deep copy
+                    };
+                }
+                
                 displayPatterns();
                 
                 // Reset builder
@@ -1345,15 +1595,107 @@
         
         // Update preview when dropdown changes
         document.addEventListener('DOMContentLoaded', function() {
-            // ESC key to close rule modal
+            // ESC key to close modals
             document.addEventListener('keydown', function(e) {
                 if (e.key === 'Escape') {
-                    const modal = document.getElementById('rule-modal');
-                    if (modal && modal.classList.contains('active')) {
+                    const ruleModal = document.getElementById('rule-modal');
+                    const importModal = document.getElementById('import-modal');
+                    const templatesModal = document.getElementById('templates-modal');
+                    
+                    if (ruleModal && ruleModal.classList.contains('active')) {
                         closeRuleModal();
+                    } else if (importModal && importModal.classList.contains('active')) {
+                        closeImportModal();
+                    } else if (templatesModal && templatesModal.classList.contains('active')) {
+                        closeTemplatesModal();
                     }
                 }
             });
+            
+            // Preview import file when selected
+            const importFileInput = document.getElementById('import-file');
+            if (importFileInput) {
+                importFileInput.addEventListener('change', async function(e) {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    
+                    try {
+                        const text = await file.text();
+                        const data = JSON.parse(text);
+                        
+                        if (data.rules && Array.isArray(data.rules)) {
+                            const preview = document.getElementById('import-preview');
+                            const content = document.getElementById('import-preview-content');
+                            
+                            // Check for duplicates
+                            const mode = document.querySelector('input[name="import-mode"]:checked').value;
+                            let duplicateWarning = '';
+                            
+                            if (mode === 'merge') {
+                                try {
+                                    const currentRulesResponse = await fetch('/api/rules');
+                                    const currentRules = await currentRulesResponse.json();
+                                    
+                                    const duplicates = [];
+                                    data.rules.forEach(importRule => {
+                                        const duplicate = currentRules.find(existing => 
+                                            existing.name === importRule.name &&
+                                            existing.collection_slug === importRule.collection_slug &&
+                                            JSON.stringify(existing.patterns) === JSON.stringify(importRule.patterns)
+                                        );
+                                        if (duplicate) {
+                                            duplicates.push(importRule.name);
+                                        }
+                                    });
+                                    
+                                    if (duplicates.length > 0) {
+                                        duplicateWarning = `
+                                            <div style="color: #e67e22; margin-top: 8px; padding: 8px; background: #fff3cd; border-radius: 4px; border: 1px solid #e67e22;">
+                                                <strong>⚠️ ${duplicates.length} duplicate(s) found</strong>
+                                                <div style="font-size: 12px; margin-top: 4px;">
+                                                    ${duplicates.slice(0, 3).join(', ')}${duplicates.length > 3 ? ` +${duplicates.length - 3} more` : ''}
+                                                </div>
+                                            </div>
+                                        `;
+                                    }
+                                } catch (error) {
+                                    console.error('Error checking duplicates:', error);
+                                }
+                            }
+                            
+                            content.innerHTML = `
+                                <div style="color: #27ae60;">✓ Valid export file</div>
+                                <div style="margin-top: 5px;">
+                                    <strong>${data.rules.length}</strong> rule(s) found
+                                </div>
+                                ${data.version ? `<div style="color: #666; font-size: 12px; margin-top: 3px;">Version: ${data.version}</div>` : ''}
+                                ${data.exported_at ? `<div style="color: #666; font-size: 12px;">Exported: ${new Date(data.exported_at).toLocaleString()}</div>` : ''}
+                                ${duplicateWarning}
+                            `;
+                            preview.style.display = 'block';
+                        } else {
+                            throw new Error('Invalid format');
+                        }
+                    } catch (error) {
+                        const preview = document.getElementById('import-preview');
+                        const content = document.getElementById('import-preview-content');
+                        
+                        content.innerHTML = `<div style="color: #e74c3c;">❌ Invalid export file</div>`;
+                        preview.style.display = 'block';
+                    }
+                });
+                
+                // Re-check duplicates when mode changes
+                const modeRadios = document.querySelectorAll('input[name="import-mode"]');
+                modeRadios.forEach(radio => {
+                    radio.addEventListener('change', function() {
+                        // Re-trigger file preview if file is selected
+                        if (importFileInput.files && importFileInput.files.length > 0) {
+                            importFileInput.dispatchEvent(new Event('change'));
+                        }
+                    });
+                });
+            }
             
             const dropdown = document.getElementById('copy-from-rule-select');
             if (dropdown) {
@@ -1632,6 +1974,146 @@
             }
         }
         
+        function showImportModal() {
+            document.getElementById('import-modal').classList.add('active');
+            // Reset form
+            document.getElementById('import-form').reset();
+            document.getElementById('import-preview').style.display = 'none';
+        }
+        
+        function closeImportModal() {
+            document.getElementById('import-modal').classList.remove('active');
+        }
+        
+        async function handleImport(event) {
+            event.preventDefault();
+            
+            const fileInput = document.getElementById('import-file');
+            const mode = document.querySelector('input[name="import-mode"]:checked').value;
+            
+            if (!fileInput.files || fileInput.files.length === 0) {
+                showAlert('Please select a file', 'error');
+                return;
+            }
+            
+            const file = fileInput.files[0];
+            
+            // Validate it's JSON
+            if (!file.name.endsWith('.json')) {
+                showAlert('Please select a JSON file', 'error');
+                return;
+            }
+            
+            try {
+                // Read and parse the file first
+                const text = await file.text();
+                const importData = JSON.parse(text);
+                
+                if (!importData.rules || !Array.isArray(importData.rules)) {
+                    throw new Error('Invalid export file format');
+                }
+                
+                // Check for duplicates (only in merge mode)
+                if (mode === 'merge') {
+                    const currentRulesResponse = await fetch('/api/rules');
+                    const currentRules = await currentRulesResponse.json();
+                    
+                    // Find duplicates based on name, collection, and patterns
+                    const duplicates = [];
+                    importData.rules.forEach(importRule => {
+                        const duplicate = currentRules.find(existing => 
+                            existing.name === importRule.name &&
+                            existing.collection_slug === importRule.collection_slug &&
+                            JSON.stringify(existing.patterns) === JSON.stringify(importRule.patterns)
+                        );
+                        if (duplicate) {
+                            duplicates.push({
+                                name: importRule.name,
+                                collection: importRule.collection_slug
+                            });
+                        }
+                    });
+                    
+                    // Warn about duplicates
+                    if (duplicates.length > 0) {
+                        const duplicateList = duplicates.map(d => `• ${d.name} (${d.collection})`).join('\n');
+                        const message = `⚠️ Found ${duplicates.length} duplicate rule(s):\n\n${duplicateList}\n\nThese rules have identical names, collections, and patterns.\n\nImport anyway?`;
+                        
+                        if (!confirm(message)) {
+                            return;
+                        }
+                    }
+                }
+                
+                // Confirm replace mode
+                if (mode === 'replace') {
+                    if (!confirm('⚠️ This will DELETE all existing rules and replace them with imported rules. Are you sure?')) {
+                        return;
+                    }
+                }
+                
+                // Proceed with import
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('mode', mode);
+                
+                const response = await fetch('/api/import', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Import failed');
+                }
+                
+                const result = await response.json();
+                
+                closeImportModal();
+                showAlert(
+                    `Successfully imported ${result.imported_count} rule(s). Total rules: ${result.total_rules}`,
+                    'success'
+                );
+                
+                // Reload rules
+                loadRules();
+                loadStatus();
+                
+            } catch (error) {
+                console.error('Import error:', error);
+                showAlert(`Import failed: ${error.message}`, 'error');
+            }
+        }
+        
+        async function exportRules() {
+            try {
+                // Could add a modal here to select group filter
+                // For now, export all rules
+                const response = await fetch('/api/export?group=all');
+                
+                if (!response.ok) {
+                    throw new Error('Export failed');
+                }
+                
+                // Trigger download
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `channels-rules-${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                showAlert('Rules exported successfully', 'success');
+                
+            } catch (error) {
+                console.error('Export error:', error);
+                showAlert('Export failed: ' + error.message, 'error');
+            }
+        }
+        
         async function loadRules() {
             try {
                 // Load collections first to populate the cache
@@ -1641,10 +2123,76 @@
                 
                 const response = await fetch('/api/rules');
                 const rules = await response.json();
+                
+                // Update groups filter and suggestions
+                await loadGroups(rules);
+                
                 displayRules(rules);
             } catch (error) {
                 console.error('Error loading rules:', error);
                 document.getElementById('rules-list').innerHTML = '<div class="empty-state">Error loading rules</div>';
+            }
+        }
+        
+        async function loadGroups(rules) {
+            // Extract unique groups from rules
+            const groups = new Set();
+            rules.forEach(rule => {
+                if (rule.group) {
+                    groups.add(rule.group);
+                }
+            });
+            
+            // Update filter dropdown
+            const filterSelect = document.getElementById('group-filter');
+            if (filterSelect) {
+                const sortedGroups = Array.from(groups).sort();
+                filterSelect.innerHTML = `
+                    <option value="all">All Groups</option>
+                    ${sortedGroups.map(g => `<option value="${g}">${g}</option>`).join('')}
+                    <option value="ungrouped">Ungrouped</option>
+                `;
+            }
+            
+            // Update autocomplete datalist
+            const datalist = document.getElementById('group-suggestions');
+            if (datalist) {
+                const sortedGroups = Array.from(groups).sort();
+                datalist.innerHTML = sortedGroups.map(g => `<option value="${g}">`).join('');
+            }
+        }
+        
+        async function filterRules() {
+            try {
+                const response = await fetch('/api/rules');
+                const allRules = await response.json();
+                
+                const searchText = document.getElementById('rule-search').value.toLowerCase();
+                const groupFilter = document.getElementById('group-filter').value;
+                
+                let filtered = allRules;
+                
+                // Apply search filter
+                if (searchText) {
+                    filtered = filtered.filter(rule => 
+                        rule.name.toLowerCase().includes(searchText) ||
+                        rule.patterns.some(p => p.toLowerCase().includes(searchText)) ||
+                        (collectionsCache[rule.collection_slug] || '').toLowerCase().includes(searchText)
+                    );
+                }
+                
+                // Apply group filter
+                if (groupFilter && groupFilter !== 'all') {
+                    if (groupFilter === 'ungrouped') {
+                        filtered = filtered.filter(rule => !rule.group);
+                    } else {
+                        filtered = filtered.filter(rule => rule.group === groupFilter);
+                    }
+                }
+                
+                displayRules(filtered);
+            } catch (error) {
+                console.error('Error filtering rules:', error);
             }
         }
         
@@ -1673,49 +2221,135 @@
                 return;
             }
             
-            container.innerHTML = rules.map(rule => {
-                const collectionName = collectionsCache[rule.collection_slug] || `Collection ${rule.collection_slug}`;
-                return `
-                <div class="rule-card ${!rule.enabled ? 'disabled' : ''}">
-                    <div class="rule-header">
-                        <div class="rule-title">${rule.name}</div>
-                        <div class="rule-actions">
-                            <button class="btn btn-secondary" onclick="previewRuleById('${rule.id}')">👁️ Preview</button>
-                            <button class="btn btn-secondary" onclick="cloneRule('${rule.id}')">📋 Clone</button>
-                            <button class="btn" onclick="editRule('${rule.id}')">Edit</button>
-                            <button class="btn btn-danger" onclick="deleteRule('${rule.id}')">Delete</button>
+            // Group rules by group/folder
+            const grouped = {};
+            rules.forEach(rule => {
+                const group = rule.group || 'Ungrouped';
+                if (!grouped[group]) {
+                    grouped[group] = [];
+                }
+                grouped[group].push(rule);
+            });
+            
+            // Sort groups: Ungrouped last, rest alphabetically
+            const sortedGroups = Object.keys(grouped).sort((a, b) => {
+                if (a === 'Ungrouped') return 1;
+                if (b === 'Ungrouped') return -1;
+                return a.localeCompare(b);
+            });
+            
+            let html = '';
+            
+            sortedGroups.forEach(groupName => {
+                const groupRules = grouped[groupName];
+                const groupId = groupName.toLowerCase().replace(/\s+/g, '-');
+                const isExpanded = localStorage.getItem(`group-${groupId}-expanded`) !== 'false';
+                
+                html += `
+                    <div class="rule-group" style="margin-bottom: 20px;">
+                        <div class="rule-group-header" onclick="toggleGroup('${groupId}')" style="
+                            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+                            padding: 12px 16px;
+                            border-radius: 8px;
+                            cursor: pointer;
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            margin-bottom: 8px;
+                            border: 1px solid #dee2e6;
+                            transition: all 0.2s;
+                        " onmouseover="this.style.background='linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%)'" onmouseout="this.style.background='linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)'">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <span id="group-${groupId}-icon" style="font-size: 14px; transition: transform 0.2s;">${isExpanded ? '▼' : '▶'}</span>
+                                <strong style="font-size: 16px; color: #2c3e50;">📁 ${groupName}</strong>
+                                <span style="color: #666; font-size: 14px;">(${groupRules.length} rule${groupRules.length > 1 ? 's' : ''})</span>
+                            </div>
+                        </div>
+                        <div id="group-${groupId}-content" style="display: ${isExpanded ? 'block' : 'none'};">
+                `;
+                
+                groupRules.forEach(rule => {
+                    const collectionName = collectionsCache[rule.collection_slug] || `Collection ${rule.collection_slug}`;
+                    html += `
+                        <div class="rule-card ${!rule.enabled ? 'disabled' : ''}" style="margin-bottom: 12px;">
+                            <div class="rule-header">
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <label class="toggle-switch" title="${rule.enabled ? 'Disable rule' : 'Enable rule'}">
+                                        <input type="checkbox" ${rule.enabled ? 'checked' : ''} onchange="toggleRuleEnabled('${rule.id}', this.checked)">
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                    <div class="rule-title">${rule.name}</div>
+                                </div>
+                                <div class="rule-actions">
+                                    <button class="btn btn-secondary" onclick="previewRuleById('${rule.id}')">👁️ Preview</button>
+                                    <button class="btn btn-secondary" onclick="cloneRule('${rule.id}')">📋 Clone</button>
+                                    <button class="btn" onclick="editRule('${rule.id}')">Edit</button>
+                                    <button class="btn btn-danger" onclick="deleteRule('${rule.id}')">Delete</button>
+                                </div>
+                            </div>
+                            <div class="rule-info">
+                                <div class="rule-info-item">
+                                    <span class="rule-info-label">Collection:</span>
+                                    ${collectionName}
+                                </div>
+                                <div class="rule-info-item">
+                                    <span class="rule-info-label">Sort:</span>
+                                    ${getSortOrderLabel(rule.sort_order || 'none')}
+                                </div>
+                                <div class="rule-info-item">
+                                    <span class="rule-info-label">Sync:</span>
+                                    ${rule.sync_interval_minutes ? rule.sync_interval_minutes + ' min' : 'Global'}
+                                </div>
+                                <div class="rule-info-item">
+                                    <span class="rule-info-label">Status:</span>
+                                    ${rule.enabled ? '✅ Enabled' : '⏸️ Disabled'}
+                                </div>
+                                ${rule.schedule_enabled ? `
+                                    <div class="rule-info-item">
+                                        <span class="rule-info-label">Schedule:</span>
+                                        <span style="color: #6366f1; font-size: 12px;">
+                                            🕐 ${rule.schedule_start_time || '00:00'} - ${rule.schedule_end_time || '23:59'}
+                                            ${rule.schedule_days && rule.schedule_days.length > 0 ? `<br><small style="color: #666;">${rule.schedule_days.map(d => d.substring(0,3).toUpperCase()).join(', ')}</small>` : ''}
+                                        </span>
+                                    </div>
+                                ` : ''}
+                            </div>
+                            <div class="rule-patterns">
+                                <div style="margin-bottom: 8px;">
+                                    <strong>Match:</strong>
+                                    ${rule.match_types.map(t => `<span class="match-type-tag">${t}</span>`).join('')}
+                                </div>
+                                <div>
+                                    <strong>Patterns:</strong>
+                                    ${rule.patterns.map(p => `<span class="pattern-tag">${p}</span>`).join('')}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += `
                         </div>
                     </div>
-                    <div class="rule-info">
-                        <div class="rule-info-item">
-                            <span class="rule-info-label">Collection:</span>
-                            ${collectionName}
-                        </div>
-                        <div class="rule-info-item">
-                            <span class="rule-info-label">Sort:</span>
-                            ${getSortOrderLabel(rule.sort_order || 'none')}
-                        </div>
-                        <div class="rule-info-item">
-                            <span class="rule-info-label">Sync:</span>
-                            ${rule.sync_interval_minutes ? rule.sync_interval_minutes + ' min' : 'Global'}
-                        </div>
-                        <div class="rule-info-item">
-                            <span class="rule-info-label">Status:</span>
-                            ${rule.enabled ? '✅ Enabled' : '⏸️ Disabled'}
-                        </div>
-                    </div>
-                    <div class="rule-patterns">
-                        <div style="margin-bottom: 8px;">
-                            <strong>Match:</strong>
-                            ${rule.match_types.map(t => `<span class="match-type-tag">${t}</span>`).join('')}
-                        </div>
-                        <div>
-                            <strong>Patterns:</strong>
-                            ${rule.patterns.map(p => `<span class="pattern-tag">${p}</span>`).join('')}
-                        </div>
-                    </div>
-                </div>
-            `}).join('');
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        function toggleGroup(groupId) {
+            const content = document.getElementById(`group-${groupId}-content`);
+            const icon = document.getElementById(`group-${groupId}-icon`);
+            
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                icon.textContent = '▼';
+                localStorage.setItem(`group-${groupId}-expanded`, 'true');
+            } else {
+                content.style.display = 'none';
+                icon.textContent = '▶';
+                localStorage.setItem(`group-${groupId}-expanded`, 'false');
+            }
         }
         
         async function loadCollections() {
@@ -1772,9 +2406,13 @@
             currentIncludeSources = ruleData ? (ruleData.include_sources || []) : [];
             currentExcludeSources = ruleData ? (ruleData.exclude_sources || []) : [];
             
+            // Load pattern metadata from rule (or reset if new rule)
+            patternMetadata = ruleData && ruleData.pattern_metadata ? {...ruleData.pattern_metadata} : {};
+            
             document.getElementById('modal-title').textContent = ruleData ? 'Edit Rule' : 'Add Rule';
             document.getElementById('rule-id').value = ruleData ? ruleData.id : '';
             document.getElementById('rule-name').value = ruleData ? ruleData.name : '';
+            document.getElementById('rule-group').value = ruleData ? (ruleData.group || '') : '';
             
             // Handle sort order including custom regex
             const sortOrder = ruleData ? (ruleData.sort_order || 'none') : 'none';
@@ -1797,6 +2435,24 @@
             // Set refresh options
             document.getElementById('refresh-sources-before-sync').checked = ruleData ? (ruleData.refresh_sources_before_sync || false) : false;
             document.getElementById('refresh-epg-before-sync').checked = ruleData ? (ruleData.refresh_epg_before_sync || false) : false;
+            
+            // Set schedule options
+            const scheduleEnabled = ruleData ? (ruleData.schedule_enabled || false) : false;
+            document.getElementById('schedule-enabled').checked = scheduleEnabled;
+            toggleScheduleFields();
+            
+            if (ruleData && ruleData.schedule_days) {
+                ruleData.schedule_days.forEach(day => {
+                    const checkbox = document.querySelector(`input[name="schedule-day"][value="${day}"]`);
+                    if (checkbox) checkbox.checked = true;
+                });
+            } else {
+                // Uncheck all days
+                document.querySelectorAll('input[name="schedule-day"]').forEach(cb => cb.checked = false);
+            }
+            
+            document.getElementById('schedule-start-time').value = ruleData ? (ruleData.schedule_start_time || '') : '';
+            document.getElementById('schedule-end-time').value = ruleData ? (ruleData.schedule_end_time || '') : '';
             
             // Update global sync interval display
             fetch('/api/status')
@@ -1841,6 +2497,12 @@
                 console.log('Setting collection to:', ruleData.collection_slug);
                 document.getElementById('collection-slug').value = ruleData.collection_slug;
             }
+        }
+        
+        function toggleScheduleFields() {
+            const enabled = document.getElementById('schedule-enabled').checked;
+            const fields = document.getElementById('schedule-fields');
+            fields.style.display = enabled ? 'block' : 'none';
         }
         
         function closeRuleModal() {
@@ -1948,13 +2610,169 @@
         
         function editPattern(index) {
             const pattern = currentPatterns[index];
-            const newPattern = prompt('Edit pattern:', pattern);
+            const metadata = patternMetadata[pattern];
             
-            if (newPattern && newPattern.trim() && newPattern !== pattern) {
-                currentPatterns[index] = newPattern.trim();
+            if (metadata) {
+                // We have metadata - load it into builder!
+                
+                // Remove the pattern from list
+                currentPatterns.splice(index, 1);
                 displayPatterns();
-                showAlert('Pattern updated', 'success');
+                
+                // Show builder
+                const builderContainer = document.getElementById('regex-builder');
+                if (builderContainer && builderContainer.style.display === 'none') {
+                    builderContainer.style.display = 'block';
+                    document.getElementById('builder-toggle-text').textContent = 'Hide Builder';
+                }
+                
+                // Scroll to builder
+                if (builderContainer) {
+                    builderContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+                
+                // Populate based on stored mode
+                if (metadata.mode === 'simple') {
+                    // Switch to simple mode
+                    switchBuilderMode('simple');
+                    
+                    // Populate simple fields from metadata
+                    document.getElementById('pattern-type').value = metadata.type;
+                    document.getElementById('pattern-builder-input').value = metadata.value;
+                    const caseSensitiveCheckbox = document.getElementById('case-sensitive');
+                    if (caseSensitiveCheckbox) {
+                        caseSensitiveCheckbox.checked = metadata.caseSensitive;
+                    }
+                    
+                    // Generate pattern to show preview
+                    updateBuilderFields();
+                } else if (metadata.mode === 'advanced') {
+                    // Switch to advanced mode
+                    switchBuilderMode('advanced');
+                    
+                    // Restore advanced conditions from metadata
+                    advancedConditions = JSON.parse(JSON.stringify(metadata.conditions)); // Deep copy
+                    renderConditions();
+                    updateGeneratedPattern();
+                }
+                
+                // Clean up metadata for old pattern
+                delete patternMetadata[pattern];
+                
+                showAlert('Pattern loaded in builder - edit and click "Add This Pattern" when done', 'success');
+            } else {
+                // No metadata - use classic text edit
+                const newPattern = prompt('Edit pattern:', pattern);
+                
+                if (newPattern && newPattern.trim() && newPattern !== pattern) {
+                    currentPatterns[index] = newPattern.trim();
+                    displayPatterns();
+                    showAlert('Pattern updated', 'success');
+                }
             }
+        }
+        
+        function parsePatternForBuilder(pattern) {
+            // Remove case-insensitive flag if present
+            let caseSensitive = true;
+            let cleanPattern = pattern;
+            
+            if (pattern.startsWith('(?i)')) {
+                caseSensitive = false;
+                cleanPattern = pattern.substring(4);
+            }
+            
+            // Try to detect simple patterns
+            
+            // Contains
+            if (/^[^$^()|[\]{}\\]+$/.test(cleanPattern)) {
+                return {
+                    mode: 'simple',
+                    type: 'contains',
+                    value: cleanPattern,
+                    caseSensitive: caseSensitive
+                };
+            }
+            
+            // Starts with
+            if (/^\^(.+)$/.test(cleanPattern) && !/[$()|[\]{}\\]/.test(cleanPattern.substring(1))) {
+                const match = cleanPattern.match(/^\^(.+)$/);
+                return {
+                    mode: 'simple',
+                    type: 'starts',
+                    value: match[1],
+                    caseSensitive: caseSensitive
+                };
+            }
+            
+            // Ends with
+            if (/^(.+)\$$/.test(cleanPattern) && !/[^()|[\]{}\\]/.test(cleanPattern.slice(0, -1))) {
+                const match = cleanPattern.match(/^(.+)\$$/);
+                return {
+                    mode: 'simple',
+                    type: 'ends',
+                    value: match[1],
+                    caseSensitive: caseSensitive
+                };
+            }
+            
+            // Exact match
+            if (/^\^(.+)\$$/.test(cleanPattern) && !/[()|[\]{}\\]/.test(cleanPattern.slice(1, -1))) {
+                const match = cleanPattern.match(/^\^(.+)\$$/);
+                return {
+                    mode: 'simple',
+                    type: 'exact',
+                    value: match[1],
+                    caseSensitive: caseSensitive
+                };
+            }
+            
+            // Any of (OR) - simple pipe-separated values
+            if (/^[^$^()[\]{}\\]+(\|[^$^()[\]{}\\]+)+$/.test(cleanPattern)) {
+                return {
+                    mode: 'simple',
+                    type: 'any',
+                    value: cleanPattern.replace(/\|/g, ', '),
+                    caseSensitive: caseSensitive
+                };
+            }
+            
+            // Range
+            if (/^\d+-\d+$/.test(cleanPattern)) {
+                return {
+                    mode: 'simple',
+                    type: 'range',
+                    value: cleanPattern,
+                    caseSensitive: true // Range doesn't use case sensitivity
+                };
+            }
+            
+            // Does NOT contain - negative lookahead
+            const notContainsMatch = pattern.match(/^\^?\(\?!.*(.+?)\).*\$/);
+            if (notContainsMatch) {
+                return {
+                    mode: 'simple',
+                    type: 'not-contains',
+                    value: notContainsMatch[1],
+                    caseSensitive: caseSensitive
+                };
+            }
+            
+            // For more complex patterns, try to parse for advanced mode
+            // This is very basic - only handles common builder-generated patterns
+            
+            // Pattern generated by advanced builder usually has lookaheads
+            if (pattern.includes('(?=') || pattern.includes('(?!')) {
+                // Try to extract conditions (this is simplified - won't handle all cases)
+                const conditions = [];
+                
+                // This is complex to parse perfectly, so return null for now
+                // User can manually edit complex patterns
+                return null;
+            }
+            
+            // If we can't parse it, return null (will use manual edit)
+            return null;
         }
         
         async function previewRule() {
@@ -2050,10 +2868,18 @@
             const syncIntervalInput = document.getElementById('sync-interval-override').value;
             const syncIntervalMinutes = syncIntervalInput ? parseInt(syncIntervalInput) : null;
             
+            // Get schedule data
+            const scheduleEnabled = document.getElementById('schedule-enabled').checked;
+            const scheduleDays = Array.from(document.querySelectorAll('input[name="schedule-day"]:checked')).map(cb => cb.value);
+            const scheduleStartTime = document.getElementById('schedule-start-time').value;
+            const scheduleEndTime = document.getElementById('schedule-end-time').value;
+            
             const ruleData = {
                 name: document.getElementById('rule-name').value,
+                group: document.getElementById('rule-group').value.trim() || null,
                 collection_slug: document.getElementById('collection-slug').value,
                 patterns: currentPatterns,
+                pattern_metadata: patternMetadata, // Save metadata with rule
                 match_types: matchTypes,
                 sort_order: sortOrder,
                 sync_interval_minutes: syncIntervalMinutes,
@@ -2061,7 +2887,11 @@
                 exclude_sources: currentExcludeSources,
                 enabled: document.getElementById('rule-enabled').checked,
                 refresh_sources_before_sync: document.getElementById('refresh-sources-before-sync').checked,
-                refresh_epg_before_sync: document.getElementById('refresh-epg-before-sync').checked
+                refresh_epg_before_sync: document.getElementById('refresh-epg-before-sync').checked,
+                schedule_enabled: scheduleEnabled,
+                schedule_days: scheduleDays.length > 0 ? scheduleDays : null,
+                schedule_start_time: scheduleStartTime || null,
+                schedule_end_time: scheduleEndTime || null
             };
             
             try {
@@ -2127,6 +2957,196 @@
             } catch (error) {
                 console.error('Error deleting rule:', error);
                 showAlert('Error deleting rule', 'error');
+            }
+        }
+        
+        async function toggleRuleEnabled(ruleId, enabled) {
+            try {
+                const response = await fetch('/api/rules');
+                const rules = await response.json();
+                const rule = rules.find(r => r.id === ruleId);
+                
+                if (!rule) {
+                    showAlert('Rule not found', 'error');
+                    return;
+                }
+                
+                // Update the enabled status
+                rule.enabled = enabled;
+                
+                const updateResponse = await fetch(`/api/rules/${ruleId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(rule)
+                });
+                
+                if (updateResponse.ok) {
+                    showAlert(`Rule ${enabled ? 'enabled' : 'disabled'}`, 'success');
+                    loadRules();
+                    loadStatus();
+                } else {
+                    showAlert('Error updating rule', 'error');
+                    // Reload to reset toggle
+                    loadRules();
+                }
+            } catch (error) {
+                console.error('Error toggling rule:', error);
+                showAlert('Error updating rule', 'error');
+                // Reload to reset toggle
+                loadRules();
+            }
+        }
+        
+        // Template Functions
+        async function showTemplatesModal() {
+            document.getElementById('templates-modal').classList.add('active');
+            await loadTemplates();
+        }
+        
+        function closeTemplatesModal() {
+            document.getElementById('templates-modal').classList.remove('active');
+        }
+        
+        async function loadTemplates() {
+            try {
+                const response = await fetch('/api/templates');
+                const templates = await response.json();
+                
+                const container = document.getElementById('templates-list');
+                
+                if (templates.length === 0) {
+                    container.innerHTML = '<div class="empty-state">No templates saved yet. Save your first template from the rule editor!</div>';
+                    return;
+                }
+                
+                container.innerHTML = templates.map(template => `
+                    <div style="border: 1px solid #ddd; border-radius: 6px; padding: 15px; margin-bottom: 12px; background: white;">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                            <div>
+                                <strong style="font-size: 16px; color: #2c3e50;">${template.name}</strong>
+                                ${template.description ? `<div style="color: #666; font-size: 13px; margin-top: 4px;">${template.description}</div>` : ''}
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <button class="btn btn-secondary" onclick="useTemplate('${template.id}')">Use Template</button>
+                                <button class="btn btn-danger" onclick="deleteTemplate('${template.id}')">Delete</button>
+                            </div>
+                        </div>
+                        <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #f0f0f0;">
+                            <div style="margin-bottom: 6px;">
+                                <strong style="font-size: 12px;">Match:</strong>
+                                ${template.match_types.map(t => `<span class="match-type-tag">${t}</span>`).join('')}
+                            </div>
+                            <div>
+                                <strong style="font-size: 12px;">Patterns:</strong>
+                                ${template.patterns.map(p => `<span class="pattern-tag" style="font-size: 11px;">${p}</span>`).join('')}
+                            </div>
+                            ${template.sort_order && template.sort_order !== 'none' ? `
+                                <div style="margin-top: 6px;">
+                                    <strong style="font-size: 12px;">Sort:</strong>
+                                    <span style="color: #666; font-size: 12px;">${getSortOrderLabel(template.sort_order)}</span>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading templates:', error);
+                document.getElementById('templates-list').innerHTML = '<div class="empty-state">Error loading templates</div>';
+            }
+        }
+        
+        async function saveAsTemplate() {
+            const templateName = prompt('Enter a name for this template:');
+            if (!templateName) return;
+            
+            const templateDescription = prompt('Enter a description (optional):');
+            
+            // Get current rule data
+            const matchTypes = Array.from(document.querySelectorAll('input[name="match-type"]:checked')).map(cb => cb.value);
+            const sortOrder = document.getElementById('sort-order').value;
+            
+            const template = {
+                name: templateName,
+                description: templateDescription || '',
+                patterns: [...currentPatterns],
+                match_types: matchTypes,
+                sort_order: sortOrder
+            };
+            
+            try {
+                const response = await fetch('/api/templates', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(template)
+                });
+                
+                if (response.ok) {
+                    showAlert('Template saved successfully!', 'success');
+                } else {
+                    throw new Error('Failed to save template');
+                }
+            } catch (error) {
+                console.error('Error saving template:', error);
+                showAlert('Error saving template', 'error');
+            }
+        }
+        
+        async function useTemplate(templateId) {
+            try {
+                const response = await fetch('/api/templates');
+                const templates = await response.json();
+                const template = templates.find(t => t.id === templateId);
+                
+                if (!template) {
+                    showAlert('Template not found', 'error');
+                    return;
+                }
+                
+                // Close templates modal
+                closeTemplatesModal();
+                
+                // Open rule modal if not already open
+                if (!document.getElementById('rule-modal').classList.contains('active')) {
+                    openRuleModal();
+                }
+                
+                // Apply template data
+                currentPatterns = [...template.patterns];
+                displayPatterns();
+                
+                // Set match types
+                document.querySelectorAll('input[name="match-type"]').forEach(cb => {
+                    cb.checked = template.match_types.includes(cb.value);
+                });
+                
+                // Set sort order
+                document.getElementById('sort-order').value = template.sort_order || 'none';
+                toggleCustomSortInput(); // Use correct function name
+                
+                showAlert(`Template "${template.name}" applied!`, 'success');
+            } catch (error) {
+                console.error('Error using template:', error);
+                showAlert('Error applying template', 'error');
+            }
+        }
+        
+        async function deleteTemplate(templateId) {
+            if (!confirm('Delete this template?')) return;
+            
+            try {
+                const response = await fetch(`/api/templates/${templateId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    showAlert('Template deleted', 'success');
+                    await loadTemplates();
+                } else {
+                    throw new Error('Failed to delete template');
+                }
+            } catch (error) {
+                console.error('Error deleting template:', error);
+                showAlert('Error deleting template', 'error');
             }
         }
         
@@ -2427,7 +3447,7 @@
     
     <footer style="text-align: center; padding: 30px 20px; color: #7f8c8d; font-size: 14px; border-top: 1px solid #ecf0f1; margin-top: 40px; background: #fff;">
         <div style="margin-bottom: 10px;">
-            Channels DVR Collection Manager <span id="app-version">v1.0.1</span>
+            Channels DVR Collection Manager <span id="app-version">v1.2.0</span>
         </div>
         <div>
             <a href="https://github.com/CurtisFeatures/channels-dvr-collection-manager" target="_blank" style="color: #6366f1; text-decoration: none;">
