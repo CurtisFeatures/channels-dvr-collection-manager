@@ -1,6 +1,5 @@
-<img src="static/logo.png" width="30%">
-
 # Channels DVR Collection Manager
+<img src="static/logo.png" width="30%">
 
 A powerful web-based tool for automatically managing channel collections in Channels DVR based on flexible pattern matching rules.
 
