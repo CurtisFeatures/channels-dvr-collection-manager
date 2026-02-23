@@ -3,11 +3,14 @@ import os
 import re
 import json
 import logging
-from datetime import datetime
+import uuid
+from datetime import datetime, time
 from typing import List, Dict, Any, Set
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_file
 from apscheduler.schedulers.background import BackgroundScheduler
 import requests
+import tempfile
+from io import BytesIO
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -23,6 +26,38 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key')
 DVR_URL = os.environ.get('DVR_URL', 'http://channelsdvr:8089')
 CONFIG_FILE = '/config/rules.json'
 SYNC_INTERVAL = int(os.environ.get('SYNC_INTERVAL_MINUTES', '60'))
+
+
+def is_rule_scheduled_now(rule: Dict[str, Any]) -> bool:
+    """Check if rule should run based on schedule"""
+    if not rule.get('schedule_enabled', False):
+        return True  # No schedule = always active
+    
+    now = datetime.now()
+    current_time = now.time()
+    current_day = now.strftime('%A').lower()
+    
+    # Check days of week
+    schedule_days = rule.get('schedule_days', [])
+    if schedule_days and current_day not in schedule_days:
+        return False
+    
+    # Check time window
+    start_time_str = rule.get('schedule_start_time')
+    end_time_str = rule.get('schedule_end_time')
+    
+    if start_time_str and end_time_str:
+        start_time = datetime.strptime(start_time_str, '%H:%M').time()
+        end_time = datetime.strptime(end_time_str, '%H:%M').time()
+        
+        if start_time <= end_time:
+            # Normal range (e.g., 09:00 - 17:00)
+            return start_time <= current_time <= end_time
+        else:
+            # Overnight range (e.g., 22:00 - 06:00)
+            return current_time >= start_time or current_time <= end_time
+    
+    return True
 
 
 class ChannelsAPI:
@@ -506,7 +541,8 @@ class SyncManager:
         results = {
             'timestamp': datetime.now().isoformat(),
             'collections': {},
-            'errors': []
+            'errors': [],
+            'skipped': []
         }
         
         try:
@@ -533,6 +569,13 @@ class SyncManager:
             
             # Process each rule
             for rule in active_rules:
+                # Check if rule should run based on schedule
+                if not is_rule_scheduled_now(rule):
+                    rule_name = rule.get('name', 'Unknown')
+                    logger.info(f"Skipping rule '{rule_name}' - outside scheduled time window")
+                    results['skipped'].append(rule_name)
+                    continue
+                
                 collection_slug = rule.get('collection_slug')
                 if not collection_slug:
                     logger.warning(f"Rule '{rule.get('name')}' has no collection_slug, skipping")
@@ -867,6 +910,168 @@ def test_connection():
         }
     
     return jsonify(results)
+
+
+@app.route('/api/export', methods=['GET'])
+def export_rules():
+    """Export all rules or specific groups as JSON"""
+    try:
+        group_filter = request.args.get('group')
+        rules_to_export = rule_manager.rules
+        
+        if group_filter and group_filter != 'all':
+            rules_to_export = [r for r in rules_to_export if r.get('group') == group_filter]
+        
+        export_data = {
+            'version': '1.2.0',
+            'exported_at': datetime.now().isoformat(),
+            'rules_count': len(rules_to_export),
+            'rules': rules_to_export
+        }
+        
+        # Create in-memory file
+        json_data = json.dumps(export_data, indent=2)
+        buffer = BytesIO(json_data.encode('utf-8'))
+        buffer.seek(0)
+        
+        filename = f"channels-rules-{datetime.now().strftime('%Y%m%d-%H%M%S')}.json"
+        if group_filter and group_filter != 'all':
+            filename = f"channels-rules-{group_filter}-{datetime.now().strftime('%Y%m%d-%H%M%S')}.json"
+        
+        return send_file(
+            buffer,
+            mimetype='application/json',
+            as_attachment=True,
+            download_name=filename
+        )
+    except Exception as e:
+        logger.error(f"Export error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/import', methods=['POST'])
+def import_rules():
+    """Import rules from JSON file"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file provided'}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+        
+        # Read and parse JSON
+        content = file.read().decode('utf-8')
+        import_data = json.loads(content)
+        
+        if 'rules' not in import_data:
+            return jsonify({'error': 'Invalid export file format'}), 400
+        
+        imported_rules = import_data['rules']
+        mode = request.form.get('mode', 'merge')  # merge or replace
+        
+        if mode == 'replace':
+            rule_manager.rules = imported_rules
+        else:  # merge
+            # Generate new IDs for imported rules to avoid conflicts
+            import uuid
+            for rule in imported_rules:
+                rule['id'] = str(uuid.uuid4())
+            rule_manager.rules.extend(imported_rules)
+        
+        rule_manager.save_rules()
+        setup_rule_schedulers()
+        
+        return jsonify({
+            'success': True,
+            'imported_count': len(imported_rules),
+            'mode': mode,
+            'total_rules': len(rule_manager.rules)
+        })
+    except Exception as e:
+        logger.error(f"Import error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/groups', methods=['GET'])
+def get_groups():
+    """Get all unique rule groups"""
+    try:
+        groups = set()
+        for rule in rule_manager.rules:
+            group = rule.get('group', 'ungrouped')
+            if group:
+                groups.add(group)
+        
+        return jsonify(sorted(list(groups)))
+    except Exception as e:
+        logger.error(f"Error getting groups: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/templates', methods=['GET'])
+def get_templates():
+    """Get all rule templates"""
+    try:
+        templates_file = '/config/templates.json'
+        if os.path.exists(templates_file):
+            with open(templates_file, 'r') as f:
+                templates = json.load(f)
+            return jsonify(templates)
+        return jsonify([])
+    except Exception as e:
+        logger.error(f"Error loading templates: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/templates', methods=['POST'])
+def save_template():
+    """Save a new template"""
+    try:
+        template_data = request.json
+        
+        # Load existing templates
+        templates_file = '/config/templates.json'
+        templates = []
+        if os.path.exists(templates_file):
+            with open(templates_file, 'r') as f:
+                templates = json.load(f)
+        
+        # Add new template
+        template_data['id'] = str(uuid.uuid4())
+        template_data['created_at'] = datetime.now().isoformat()
+        templates.append(template_data)
+        
+        # Save
+        with open(templates_file, 'w') as f:
+            json.dump(templates, f, indent=2)
+        
+        return jsonify(template_data)
+    except Exception as e:
+        logger.error(f"Error saving template: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/templates/<template_id>', methods=['DELETE'])
+def delete_template(template_id):
+    """Delete a template"""
+    try:
+        templates_file = '/config/templates.json'
+        if not os.path.exists(templates_file):
+            return jsonify({'error': 'No templates found'}), 404
+        
+        with open(templates_file, 'r') as f:
+            templates = json.load(f)
+        
+        templates = [t for t in templates if t['id'] != template_id]
+        
+        with open(templates_file, 'w') as f:
+            json.dump(templates, f, indent=2)
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        logger.error(f"Error deleting template: {e}")
+        return jsonify({'error': str(e)}), 500
 
 
 def scheduled_sync():
