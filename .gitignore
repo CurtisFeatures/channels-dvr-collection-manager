@@ -44,3 +44,4 @@ Thumbs.db
 
 # Docker
 docker-compose.override.yml
+.DS_Store
