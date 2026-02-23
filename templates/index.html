@@ -1585,6 +1585,7 @@
                     option.value = rule.id;
                     option.textContent = `${rule.name} (${rule.patterns.length} pattern${rule.patterns.length > 1 ? 's' : ''})`;
                     option.dataset.patterns = JSON.stringify(rule.patterns);
+                    option.dataset.metadata = JSON.stringify(rule.pattern_metadata || {});
                     dropdown.appendChild(option);
                 });
                 
@@ -1731,6 +1732,7 @@
             
             const selectedOption = dropdown.selectedOptions[0];
             const patterns = JSON.parse(selectedOption.dataset.patterns);
+            const metadata = JSON.parse(selectedOption.dataset.metadata || '{}');
             const ruleName = selectedOption.textContent.split(' (')[0];
             
             // Get selected checkboxes
@@ -1747,6 +1749,10 @@
                 const pattern = patterns[idx];
                 if (!currentPatterns.includes(pattern)) {
                     currentPatterns.push(pattern);
+                    // Copy metadata if it exists
+                    if (metadata[pattern]) {
+                        patternMetadata[pattern] = JSON.parse(JSON.stringify(metadata[pattern])); // Deep copy
+                    }
                     addedCount++;
                 }
             });
@@ -3069,6 +3075,7 @@
                 name: templateName,
                 description: templateDescription || '',
                 patterns: [...currentPatterns],
+                pattern_metadata: JSON.parse(JSON.stringify(patternMetadata)), // Include metadata!
                 match_types: matchTypes,
                 sort_order: sortOrder
             };
@@ -3112,6 +3119,15 @@
                 
                 // Apply template data
                 currentPatterns = [...template.patterns];
+                
+                // Restore pattern metadata from template
+                if (template.pattern_metadata) {
+                    patternMetadata = JSON.parse(JSON.stringify(template.pattern_metadata)); // Deep copy
+                } else {
+                    // Old template without metadata - clear it
+                    patternMetadata = {};
+                }
+                
                 displayPatterns();
                 
                 // Set match types
@@ -3121,7 +3137,7 @@
                 
                 // Set sort order
                 document.getElementById('sort-order').value = template.sort_order || 'none';
-                toggleCustomSortInput(); // Use correct function name
+                toggleCustomSortInput();
                 
                 showAlert(`Template "${template.name}" applied!`, 'success');
             } catch (error) {
@@ -3447,7 +3463,7 @@
     
     <footer style="text-align: center; padding: 30px 20px; color: #7f8c8d; font-size: 14px; border-top: 1px solid #ecf0f1; margin-top: 40px; background: #fff;">
         <div style="margin-bottom: 10px;">
-            Channels DVR Collection Manager <span id="app-version">v1.2.0</span>
+            Channels DVR Collection Manager <span id="app-version">v1.0.1</span>
         </div>
         <div>
             <a href="https://github.com/CurtisFeatures/channels-dvr-collection-manager" target="_blank" style="color: #6366f1; text-decoration: none;">
