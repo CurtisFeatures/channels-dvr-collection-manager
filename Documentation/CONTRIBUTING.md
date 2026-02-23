@@ -41,7 +41,7 @@ Feature requests are welcome! Please provide:
 
 ```bash
 # Clone your fork
-git clone https://github.com/yourusername/channels-collection-manager.git
+git clone https://github.com/CurtisFeatures/channels-collection-manager.git
 cd channels-collection-manager
 
 # Install dependencies
