@@ -243,8 +243,17 @@ class RuleManager:
                 # Check channel number
                 if 'number' in match_types:
                     channel_number = str(channel.get('GuideNumber', ''))
-                    if regex.search(channel_number):
-                        return True
+                    # Use word boundaries to prevent partial matches (e.g., 400 shouldn't match 6400)
+                    # Add word boundary if pattern is purely numeric
+                    if pattern.replace('.', '').replace(',', '').isdigit():
+                        # Pure number pattern - use exact word boundary matching
+                        bounded_pattern = r'\b' + re.escape(pattern) + r'\b'
+                        if re.search(bounded_pattern, channel_number):
+                            return True
+                    else:
+                        # Non-numeric pattern - use normal regex
+                        if regex.search(channel_number):
+                            return True
                 
                 # Check EPG data (callsign, affiliate, etc)
                 if 'epg' in match_types:
@@ -423,7 +432,18 @@ class SyncManager:
         if not rule.get('enabled'):
             logger.warning(f"Rule {rule_id} is disabled, skipping")
             return {'error': 'Rule is disabled'}
-        
+
+        # AutoSync: update patterns from Dispatcharr before syncing
+        if rule.get('dispatcharr_autosync') and rule.get('_dispatcharr_group_id'):
+            logger.info(f"AutoSync: fetching latest channels for rule '{rule.get('name')}' from Dispatcharr")
+            autosync_result = _update_rule_patterns_from_dispatcharr(rule)
+            if autosync_result['success']:
+                logger.info(f"AutoSync: updated patterns to {autosync_result.get('patterns')}")
+                # Reload rule with updated patterns
+                rule = next((r for r in self.rule_manager.rules if r.get('id') == rule_id), rule)
+            else:
+                logger.warning(f"AutoSync update failed: {autosync_result['message']} — proceeding with existing patterns")
+
         # Refresh sources and/or EPG if requested
         refresh_sources = rule.get('refresh_sources_before_sync', False)
         refresh_epg = rule.get('refresh_epg_before_sync', False)
@@ -1300,17 +1320,28 @@ def get_dispatcharr_groups():
     """Get all enabled Dispatcharr channel groups"""
     try:
         client = get_dispatcharr_client()
-        
+
         if not client:
             return jsonify({
                 'error': 'Dispatcharr not configured or not enabled'
             }), 400
-        
+
         # Get enabled groups
         groups = client.get_enabled_groups()
-        
+
+        # Build set of group IDs that already have an AutoSync rule
+        autosync_group_ids = {
+            r['_dispatcharr_group_id']
+            for r in rule_manager.rules
+            if r.get('dispatcharr_autosync') and r.get('_dispatcharr_group_id')
+        }
+
+        # Annotate each group with has_autosync_rule flag
+        for group in groups:
+            group['has_autosync_rule'] = group['id'] in autosync_group_ids
+
         return jsonify(groups)
-        
+
     except Exception as e:
         logger.error(f"Error getting Dispatcharr groups: {e}")
         return jsonify({'error': str(e)}), 500
@@ -1557,6 +1588,95 @@ def create_rule_from_dispatcharr_group(group_id):
         
     except Exception as e:
         logger.error(f"Error creating rule from Dispatcharr group: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+def _update_rule_patterns_from_dispatcharr(rule: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Fetch the latest channel numbers for a Dispatcharr-linked rule and update
+    its patterns in rule_manager.
+
+    Returns a dict with 'success', 'message', and optionally 'patterns'.
+    """
+    group_id = rule.get('_dispatcharr_group_id')
+    if not group_id:
+        return {'success': False, 'message': 'Rule has no _dispatcharr_group_id'}
+
+    client = get_dispatcharr_client()
+    if not client:
+        return {'success': False, 'message': 'Dispatcharr not configured or not enabled'}
+
+    if not client._ensure_authenticated():
+        return {'success': False, 'message': 'Dispatcharr authentication failed'}
+
+    try:
+        enabled_groups = client.get_enabled_groups()
+        target_group = next((g for g in enabled_groups if g['id'] == group_id), None)
+        if not target_group:
+            return {'success': False, 'message': f'Dispatcharr group {group_id} not found or not enabled'}
+
+        group_name = target_group['name']
+        is_local_group = target_group.get('m3u_account_count', 0) == 0
+        m3u_account_name = target_group.get('m3u_account_name', '')
+
+        # Fetch channels by group
+        channels_url = f"{client.base_url}/api/channels/channels/"
+        channels_response = requests.get(channels_url, headers=client._get_headers(),
+                                         params={'channel_group_id': group_id}, timeout=30)
+        channels_response.raise_for_status()
+
+        channels_data = channels_response.json()
+        all_channels = channels_data.get('results', []) if isinstance(channels_data, dict) else channels_data
+
+        channel_nums = []
+        for ch in all_channels:
+            if not isinstance(ch, dict):
+                continue
+            if ch.get('channel_group_id') != group_id:
+                continue
+            num = ch.get('channel_number')
+            if num is not None:
+                channel_nums.append(num)
+
+        if not channel_nums:
+            return {'success': False, 'message': f'No channels found in Dispatcharr group "{group_name}"'}
+
+        smart_pattern = generate_channel_pattern(channel_nums)
+        logger.info(f"AutoSync: group '{group_name}' -> pattern '{smart_pattern}'")
+
+        # Update the rule patterns
+        rule_id = rule.get('id')
+        updated_rule = {**rule, 'patterns': [smart_pattern], 'match_types': ['number']}
+        if rule_manager.update_rule(rule_id, updated_rule):
+            return {'success': True, 'message': f'Updated patterns to {smart_pattern}', 'patterns': [smart_pattern]}
+        else:
+            return {'success': False, 'message': 'Failed to save updated rule patterns'}
+
+    except Exception as e:
+        logger.error(f"AutoSync update failed for rule {rule.get('id')}: {e}")
+        return {'success': False, 'message': str(e)}
+
+
+@app.route('/api/rules/<rule_id>/update-from-dispatcharr', methods=['POST'])
+def update_rule_from_dispatcharr(rule_id):
+    """Fetch latest channel numbers from Dispatcharr and update rule patterns"""
+    try:
+        rule = next((r for r in rule_manager.rules if r.get('id') == rule_id), None)
+        if not rule:
+            return jsonify({'error': 'Rule not found'}), 404
+
+        if not rule.get('dispatcharr_autosync'):
+            return jsonify({'error': 'Rule does not have AutoSync enabled'}), 400
+
+        result = _update_rule_patterns_from_dispatcharr(rule)
+
+        if result['success']:
+            return jsonify(result)
+        else:
+            return jsonify({'error': result['message']}), 400
+
+    except Exception as e:
+        logger.error(f"Error in update-from-dispatcharr for rule {rule_id}: {e}")
         return jsonify({'error': str(e)}), 500
 
 

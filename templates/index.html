@@ -1006,7 +1006,8 @@
             <div class="modal-body">
                 <form id="rule-form" onsubmit="saveRule(event)">
                     <input type="hidden" id="rule-id">
-                    
+                    <input type="hidden" id="dispatcharr-group-id">
+
                     <div class="form-group">
                         <label for="rule-name">Rule Name</label>
                         <input type="text" id="rule-name" required placeholder="e.g., Sports Channels">
@@ -1092,6 +1093,21 @@
                         </div>
                     </div>
                     
+                    <!-- Dispatcharr AutoSync Section (shown only for Dispatcharr-linked rules) -->
+                    <div id="dispatcharr-autosync-section" style="display: none; background: #f0f7ff; border: 1px solid #667eea; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+                        <label style="display: flex; align-items: start; gap: 10px; cursor: pointer;">
+                            <input type="checkbox" id="dispatcharr-autosync" style="margin-top: 3px; width: 16px; height: 16px;" onchange="handleAutoSyncToggle(this.checked)">
+                            <div>
+                                <strong style="color: #667eea;">🔄 Dispatcharr AutoSync → Channels DVR</strong>
+                                <small style="display: block; color: #555; margin-top: 4px;">
+                                    Before each sync, automatically fetch the latest channel numbers from this
+                                    Dispatcharr group and update this rule's patterns. Keeps your collection
+                                    in sync with Dispatcharr channel assignments.
+                                </small>
+                            </div>
+                        </label>
+                    </div>
+
                     <div class="form-group">
                         <label>Match Types</label>
                         <div class="checkbox-group">
@@ -2580,6 +2596,7 @@
                                         <span class="toggle-slider"></span>
                                     </label>
                                     <div class="rule-title">${rule.name}</div>
+                                    ${rule.dispatcharr_autosync ? '<span class="dispatcharr-auto-sync-badge" title="Patterns are automatically updated from Dispatcharr before each sync">🔄 AutoSync</span>' : ''}
                                 </div>
                                 <div class="rule-actions">
                                     <button class="btn btn-secondary" onclick="previewRuleById('${rule.id}')">👁️ Preview</button>
@@ -2719,7 +2736,28 @@
             document.getElementById('rule-id').value = ruleData ? ruleData.id : '';
             document.getElementById('rule-name').value = ruleData ? ruleData.name : '';
             document.getElementById('rule-group').value = ruleData ? (ruleData.group || '') : '';
-            
+
+            // Handle Dispatcharr AutoSync fields
+            const dispatcharrGroupId = ruleData ? (ruleData._dispatcharr_group_id || '') : '';
+            document.getElementById('dispatcharr-group-id').value = dispatcharrGroupId;
+            const autoSyncSection = document.getElementById('dispatcharr-autosync-section');
+            const autoSyncCheckbox = document.getElementById('dispatcharr-autosync');
+            if (dispatcharrGroupId) {
+                autoSyncSection.style.display = 'block';
+                autoSyncCheckbox.checked = ruleData ? (ruleData.dispatcharr_autosync || false) : false;
+            } else {
+                autoSyncSection.style.display = 'none';
+                autoSyncCheckbox.checked = false;
+            }
+            // Reset disabled states before applying autosync toggle
+            document.getElementById('sync-interval-override').disabled = false;
+            document.getElementById('sync-interval-override').style.opacity = '';
+            document.getElementById('schedule-enabled').disabled = false;
+            document.getElementById('schedule-enabled').style.opacity = '';
+            if (autoSyncCheckbox.checked) {
+                handleAutoSyncToggle(true);
+            }
+
             // Handle sort order including custom regex
             const sortOrder = ruleData ? (ruleData.sort_order || 'none') : 'none';
             if (sortOrder.startsWith('regex:')) {
@@ -2810,7 +2848,40 @@
             const fields = document.getElementById('schedule-fields');
             fields.style.display = enabled ? 'block' : 'none';
         }
-        
+
+        function handleAutoSyncToggle(isChecked) {
+            const syncIntervalInput = document.getElementById('sync-interval-override');
+            const scheduleEnabled = document.getElementById('schedule-enabled');
+            const scheduleFields = document.getElementById('schedule-fields');
+            const refreshSources = document.getElementById('refresh-sources-before-sync');
+            const ruleEnabled = document.getElementById('rule-enabled');
+
+            if (isChecked) {
+                // Grey out and disable sync interval override
+                syncIntervalInput.disabled = true;
+                syncIntervalInput.style.opacity = '0.4';
+                syncIntervalInput.value = '';
+
+                // Grey out and uncheck schedule
+                scheduleEnabled.disabled = true;
+                scheduleEnabled.style.opacity = '0.4';
+                scheduleEnabled.checked = false;
+                scheduleFields.style.display = 'none';
+
+                // Force-check refresh sources and enable rule
+                refreshSources.checked = true;
+                ruleEnabled.checked = true;
+            } else {
+                // Re-enable sync interval override
+                syncIntervalInput.disabled = false;
+                syncIntervalInput.style.opacity = '';
+
+                // Re-enable schedule
+                scheduleEnabled.disabled = false;
+                scheduleEnabled.style.opacity = '';
+            }
+        }
+
         function toggleNewCollectionFields() {
             const select = document.getElementById('collection-slug');
             const fields = document.getElementById('new-collection-fields');
@@ -3309,6 +3380,7 @@
             const scheduleStartTime = document.getElementById('schedule-start-time').value;
             const scheduleEndTime = document.getElementById('schedule-end-time').value;
             
+            const dispatcharrGroupIdVal = document.getElementById('dispatcharr-group-id').value;
             const ruleData = {
                 name: document.getElementById('rule-name').value,
                 group: document.getElementById('rule-group').value.trim() || null,
@@ -3326,7 +3398,9 @@
                 schedule_enabled: scheduleEnabled,
                 schedule_days: scheduleDays.length > 0 ? scheduleDays : null,
                 schedule_start_time: scheduleStartTime || null,
-                schedule_end_time: scheduleEndTime || null
+                schedule_end_time: scheduleEndTime || null,
+                dispatcharr_autosync: document.getElementById('dispatcharr-autosync').checked,
+                _dispatcharr_group_id: dispatcharrGroupIdVal ? parseInt(dispatcharrGroupIdVal) : null
             };
             
             try {
@@ -3819,6 +3893,11 @@
                     <div class="dispatcharr-group-header">
                         <span class="checkmark">✓</span>
                         <span>${group.name}</span>
+                        ${group.has_autosync_rule ? `
+                            <span style="margin-left: auto; background: rgba(16, 185, 129, 0.2); color: #10b981; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">
+                                🔄 AutoSync
+                            </span>
+                        ` : ''}
                     </div>
                     <div class="dispatcharr-group-body">
                         <div class="dispatcharr-group-info">
@@ -3841,15 +3920,24 @@
                                 <span style="font-size: 12px; color: #10b981; font-weight: 500;">${group.channel_pattern}</span>
                             </div>
                         ` : ''}
-                        <button class="dispatcharr-create-btn" onclick="getDispatcharrChannels(${group.id}, '${group.name.replace(/'/g, "\\'")}')" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); margin-bottom: 8px;">
-                            📥 Get Channels
-                        </button>
-                        <button class="dispatcharr-create-btn" onclick="viewDispatcharrChannels(${group.id}, '${group.name.replace(/'/g, "\\'")}', ${group.auto_sync_channel_start}, ${group.channel_count})" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); margin-bottom: 8px;">
-                            👁️ View Channels
-                        </button>
-                        <button class="dispatcharr-create-btn" onclick="createRuleFromDispatcharrGroup(${group.id})">
-                            ➕ Create Rule
-                        </button>
+                        
+                        <div class="dispatcharr-buttons">
+                            <button class="dispatcharr-create-btn" onclick="getDispatcharrChannels(${group.id}, '${group.name.replace(/'/g, "\\'")}')" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                                📥 Get Channels
+                            </button>
+                            <button class="dispatcharr-create-btn" onclick="viewDispatcharrChannels(${group.id}, '${group.name.replace(/'/g, "\\'")}', ${group.auto_sync_channel_start}, ${group.channel_count})" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                                👁️ View Channels
+                            </button>
+                            ${group.has_autosync_rule ? `
+                                <button class="dispatcharr-create-btn" disabled style="opacity: 0.5; cursor: not-allowed; background: #94a3b8;">
+                                    ✓ AutoSync Rule Active
+                                </button>
+                            ` : `
+                                <button class="dispatcharr-create-btn" onclick="createRuleFromDispatcharrGroup(${group.id})">
+                                    ➕ Create Rule
+                                </button>
+                            `}
+                        </div>
                     </div>
                 </div>
             `).join('');
@@ -4113,21 +4201,37 @@
                 
                 // Set enabled
                 document.getElementById('rule-enabled').checked = ruleData.enabled;
-                
+
+                // Set Dispatcharr AutoSync fields
+                const groupIdVal = ruleData._dispatcharr_group_id || groupId;
+                document.getElementById('dispatcharr-group-id').value = groupIdVal;
+                document.getElementById('dispatcharr-autosync-section').style.display = 'block';
+                // Pre-check AutoSync if Dispatcharr group has auto_channel_sync enabled
+                const autoSyncCheckbox = document.getElementById('dispatcharr-autosync');
+                autoSyncCheckbox.checked = ruleData.enabled; // mirrors auto_channel_sync
+                // Reset disabled states before toggling
+                document.getElementById('sync-interval-override').disabled = false;
+                document.getElementById('sync-interval-override').style.opacity = '';
+                document.getElementById('schedule-enabled').disabled = false;
+                document.getElementById('schedule-enabled').style.opacity = '';
+                if (autoSyncCheckbox.checked) {
+                    handleAutoSyncToggle(true);
+                }
+
                 // Display patterns
                 displayPatterns();
-                
+
                 // Open modal
                 document.getElementById('rule-modal').classList.add('active');
-                
+
                 showAlert(`Rule template created from "${ruleData.name}" - Select a collection and save!`, 'success');
-                
+
             } catch (error) {
                 console.error('Error creating rule from Dispatcharr group:', error);
                 showAlert(`Error: ${error.message}`, 'error');
             }
         }
-        
+
         async function cloneRule(ruleId) {
             try {
                 const response = await fetch('/api/rules');
@@ -4425,7 +4529,7 @@
     
     <footer style="text-align: center; padding: 30px 20px; color: #7f8c8d; font-size: 14px; border-top: 1px solid #ecf0f1; margin-top: 40px; background: #fff;">
         <div style="margin-bottom: 10px;">
-            Channels DVR Collection Manager <span id="app-version">v2.0.0</span>
+            Channels DVR Collection Manager <span id="app-version">v1.0.1</span>
         </div>
         <div>
             <a href="https://github.com/CurtisFeatures/channels-dvr-collection-manager" target="_blank" style="color: #6366f1; text-decoration: none;">
