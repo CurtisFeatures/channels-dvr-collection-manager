@@ -450,6 +450,110 @@
             color: #999;
         }
         
+        /* Dispatcharr Groups Grid */
+        #dispatcharr-groups-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .dispatcharr-group-card {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+            background: white;
+            transition: all 0.3s ease;
+        }
+        
+        .dispatcharr-group-card:hover {
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+            transform: translateY(-2px);
+        }
+        
+        .dispatcharr-group-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            font-size: 16px;
+        }
+        
+        .dispatcharr-group-header .checkmark {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: white;
+            color: #667eea;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+        
+        .dispatcharr-group-body {
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            min-height: 200px;
+        }
+        
+        .dispatcharr-group-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+            color: #555;
+            font-size: 14px;
+        }
+        
+        .dispatcharr-group-info .icon {
+            color: #667eea;
+            font-size: 16px;
+            width: 20px;
+            text-align: center;
+        }
+        
+        .dispatcharr-buttons {
+            margin-top: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .dispatcharr-create-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.2s;
+            margin-top: 10px;
+        }
+        
+        .dispatcharr-create-btn:hover {
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+            transform: translateY(-1px);
+        }
+        
+        .dispatcharr-auto-sync-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            background: #d4edda;
+            color: #155724;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
         .alert {
             padding: 12px 15px;
             border-radius: 6px;
@@ -653,6 +757,9 @@
                         <option value="all">All Groups</option>
                     </select>
                     
+                    <!-- Dispatcharr -->
+                    <button class="btn btn-secondary" onclick="toggleDispatcharrView()" id="dispatcharr-toggle-btn">📡 Dispatcharr</button>
+                    
                     <!-- Templates -->
                     <button class="btn btn-secondary" onclick="showTemplatesModal()">📑 Templates</button>
                     
@@ -667,6 +774,57 @@
             
             <div id="rules-list">
                 <div class="loading">Loading rules...</div>
+            </div>
+        </div>
+        
+        <!-- Dispatcharr Groups Section -->
+        <div id="dispatcharr-section" class="rules-section" style="display: none;">
+            <div class="section-header">
+                <h2>📡 Dispatcharr Channel Groups</h2>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <!-- Settings -->
+                    <button class="btn btn-secondary" onclick="showDispatcharrSettings()">⚙️ Settings</button>
+                    
+                    <!-- Refresh -->
+                    <button class="btn btn-secondary" onclick="loadDispatcharrGroupsWithPreload()">🔄 Refresh</button>
+                    
+                    <!-- Back to Rules -->
+                    <button class="btn" onclick="toggleDispatcharrView()">← Back to Rules</button>
+                </div>
+            </div>
+            
+            <!-- Filters Row -->
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                <!-- Search -->
+                <input type="text" id="dispatcharr-search" placeholder="🔍 Search groups..." style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; min-width: 200px; flex: 1;" oninput="filterDispatcharrGroups()">
+                
+                <!-- Group Type Filter -->
+                <select id="dispatcharr-type-filter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px;" onchange="filterDispatcharrGroups()">
+                    <option value="all">All Groups</option>
+                    <option value="provider" selected>Provider Groups</option>
+                    <option value="local">Local Groups</option>
+                </select>
+                
+                <!-- Status Filter -->
+                <select id="dispatcharr-filter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px;" onchange="filterDispatcharrGroups()">
+                    <option value="all">All</option>
+                    <option value="auto-sync">Auto Sync</option>
+                </select>
+                
+                <!-- M3U Provider Filter (only for provider groups) -->
+                <select id="dispatcharr-provider-filter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px;" onchange="filterDispatcharrGroups()">
+                    <option value="all">All Providers</option>
+                </select>
+                
+                <!-- Channel Count Filter -->
+                <label style="display: flex; align-items: center; gap: 5px; padding: 8px 12px; background: white; border: 1px solid #ddd; border-radius: 4px; cursor: pointer;">
+                    <input type="checkbox" id="dispatcharr-has-channels" onchange="filterDispatcharrGroups()" checked>
+                    <span style="font-size: 14px; white-space: nowrap;">Channels > 0</span>
+                </label>
+            </div>
+            
+            <div id="dispatcharr-groups-grid" style="margin-top: 20px;">
+                <div class="loading">Loading Dispatcharr groups...</div>
             </div>
         </div>
         
@@ -769,6 +927,75 @@
         </div>
     </div>
     
+    <!-- Dispatcharr Settings Modal -->
+    <div id="dispatcharr-settings-modal" class="modal">
+        <div class="modal-overlay" onclick="closeDispatcharrSettings()"></div>
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2>⚙️ Dispatcharr Integration Settings</h2>
+                <button class="modal-close" onclick="closeDispatcharrSettings()">✕</button>
+            </div>
+            <div class="modal-body">
+                <p style="color: #666; margin-bottom: 20px;">
+                    Connect to your Dispatcharr instance to auto-create rules from channel groups.
+                </p>
+                
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 10px;">
+                        <input type="checkbox" id="dispatcharr-enabled">
+                        <span>Enable Dispatcharr Integration</span>
+                    </label>
+                </div>
+                
+                <div id="dispatcharr-config-fields">
+                    <div class="form-group">
+                        <label for="dispatcharr-url">Dispatcharr URL</label>
+                        <input type="text" id="dispatcharr-url" placeholder="http://10.0.60.51:9191">
+                        <small style="color: #666;">Example: http://10.0.60.51:9191</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="dispatcharr-username">Username</label>
+                        <input type="text" id="dispatcharr-username" placeholder="admin">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="dispatcharr-password">Password</label>
+                        <input type="password" id="dispatcharr-password" placeholder="Enter password">
+                        <small style="color: #666;">Leave blank to keep existing password</small>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px; margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd;">
+                        <button type="button" class="btn btn-secondary" onclick="testDispatcharrConnection()">
+                            🔌 Test Connection
+                        </button>
+                        <button type="button" class="btn" onclick="saveDispatcharrSettings()">
+                            💾 Save Settings
+                        </button>
+                    </div>
+                    
+                    <div id="dispatcharr-test-result" style="margin-top: 15px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Dispatcharr Channels Preview Modal -->
+    <div id="dispatcharr-channels-modal" class="modal">
+        <div class="modal-overlay" onclick="closeDispatcharrChannelsModal()"></div>
+        <div class="modal-content" style="max-width: 700px; max-height: 80vh;">
+            <div class="modal-header">
+                <h2 id="dispatcharr-channels-title">📺 Channel Preview</h2>
+                <button class="modal-close" onclick="closeDispatcharrChannelsModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div id="dispatcharr-channels-list" style="max-height: 60vh; overflow-y: auto;">
+                    <div class="loading">Loading channels...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <!-- Rule Modal -->
     <div id="rule-modal" class="modal">
         <div class="modal-content">
@@ -798,9 +1025,71 @@
                     
                     <div class="form-group">
                         <label for="collection-slug">Collection</label>
-                        <select id="collection-slug" required>
+                        <select id="collection-slug" onchange="toggleNewCollectionFields()">
                             <option value="">Select a collection...</option>
+                            <option value="__CREATE_NEW__">➕ Create New Collection</option>
                         </select>
+                    </div>
+                    
+                    <!-- New Collection Fields (hidden by default) -->
+                    <div id="new-collection-fields" style="display: none; background: #f0f4ff; border: 1px solid #667eea; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+                        <h4 style="margin: 0 0 15px 0; color: #667eea;">📁 Create New Collection</h4>
+                        
+                        <div class="form-group" style="margin-bottom: 15px;">
+                            <label for="new-collection-name">Collection Name</label>
+                            <input type="text" id="new-collection-name" placeholder="Will default to rule name">
+                            <small style="display: block; color: #666; margin-top: 5px;">
+                                Leave blank to use the rule name. Use regex replace below to transform the name.
+                            </small>
+                        </div>
+                        
+                        <div style="background: white; border: 1px solid #ddd; border-radius: 6px; padding: 12px; margin-bottom: 15px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <strong>🔄 Name Transform (Regex Replace)</strong>
+                                <button type="button" class="btn btn-secondary" style="padding: 4px 12px; font-size: 12px;" onclick="toggleCollectionRegexBuilder()">
+                                    <span id="collection-regex-toggle">Show Regex Builder</span>
+                                </button>
+                            </div>
+                            
+                            <!-- Regex Builder for Collection Name -->
+                            <div id="collection-regex-builder" style="display: none; background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 6px; padding: 12px; margin-bottom: 10px;">
+                                <div style="margin-bottom: 10px;">
+                                    <label style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 5px;">Common Transforms:</label>
+                                    <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+                                        <button type="button" class="btn btn-secondary" style="padding: 4px 10px; font-size: 12px;" onclick="applyCollectionRegexTemplate('removePrefix')">Remove Prefix</button>
+                                        <button type="button" class="btn btn-secondary" style="padding: 4px 10px; font-size: 12px;" onclick="applyCollectionRegexTemplate('removeSuffix')">Remove Suffix</button>
+                                        <button type="button" class="btn btn-secondary" style="padding: 4px 10px; font-size: 12px;" onclick="applyCollectionRegexTemplate('replaceText')">Replace Text</button>
+                                        <button type="button" class="btn btn-secondary" style="padding: 4px 10px; font-size: 12px;" onclick="applyCollectionRegexTemplate('removeSpecial')">Remove Special Chars</button>
+                                        <button type="button" class="btn btn-secondary" style="padding: 4px 10px; font-size: 12px;" onclick="applyCollectionRegexTemplate('extractPart')">Extract Part</button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                <div>
+                                    <label style="font-size: 13px; font-weight: 500;">Find (Regex Pattern)</label>
+                                    <input type="text" id="collection-regex-find" placeholder="e.g., ^UK\|\\s*" style="width: 100%; padding: 6px; font-family: monospace;" oninput="previewCollectionName()">
+                                </div>
+                                <div>
+                                    <label style="font-size: 13px; font-weight: 500;">Replace With</label>
+                                    <input type="text" id="collection-regex-replace" placeholder="e.g., empty or UK -" style="width: 100%; padding: 6px;" oninput="previewCollectionName()">
+                                </div>
+                            </div>
+                            
+                            <div style="margin-top: 10px; padding: 8px; background: #fffbf0; border: 1px solid #fbbf24; border-radius: 4px;">
+                                <div style="font-size: 12px; color: #92400e; margin-bottom: 3px;"><strong>Preview:</strong></div>
+                                <div style="font-size: 13px;">
+                                    <strong>Rule name:</strong> <span id="collection-preview-input" style="color: #666;">Sat1</span><br>
+                                    <strong>Collection name:</strong> <span id="collection-preview-output" style="color: #10b981; font-weight: 600;">Sat1</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div style="padding: 10px; background: #ecfdf5; border: 1px solid #10b981; border-radius: 4px;">
+                            <div style="font-size: 13px; color: #065f46;">
+                                ✅ <strong>Auto-check:</strong> If collection "<span id="final-collection-name" style="font-weight: 600;">Sat1</span>" exists, it will be used. Otherwise, a new one will be created.
+                            </div>
+                        </div>
                     </div>
                     
                     <div class="form-group">
@@ -1602,6 +1891,8 @@
                     const ruleModal = document.getElementById('rule-modal');
                     const importModal = document.getElementById('import-modal');
                     const templatesModal = document.getElementById('templates-modal');
+                    const dispatcharrModal = document.getElementById('dispatcharr-settings-modal');
+                    const channelsModal = document.getElementById('dispatcharr-channels-modal');
                     
                     if (ruleModal && ruleModal.classList.contains('active')) {
                         closeRuleModal();
@@ -1609,6 +1900,10 @@
                         closeImportModal();
                     } else if (templatesModal && templatesModal.classList.contains('active')) {
                         closeTemplatesModal();
+                    } else if (dispatcharrModal && dispatcharrModal.classList.contains('active')) {
+                        closeDispatcharrSettings();
+                    } else if (channelsModal && channelsModal.classList.contains('active')) {
+                        closeDispatcharrChannelsModal();
                     }
                 }
             });
@@ -2381,10 +2676,15 @@
                 
                 if (collections.length === 0) {
                     select.innerHTML = `
-                        <option value="">No collections found - Create one in Channels DVR first</option>
+                        <option value="">Select a collection...</option>
+                        <option value="__CREATE_NEW__">➕ Create New Collection</option>
+                        <option value="" disabled>───────────────────</option>
+                        <option value="" disabled>No collections found - Create one above or in Channels DVR</option>
                     `;
                 } else {
                     const options = '<option value="">Select a collection...</option>' +
+                        '<option value="__CREATE_NEW__">➕ Create New Collection</option>' +
+                        '<option value="" disabled>───────────────────</option>' +
                         collections.map(c => {
                             const collectionSlug = c.slug;
                             const channelCount = c.items ? c.items.length : 0;
@@ -2510,6 +2810,88 @@
             const fields = document.getElementById('schedule-fields');
             fields.style.display = enabled ? 'block' : 'none';
         }
+        
+        function toggleNewCollectionFields() {
+            const select = document.getElementById('collection-slug');
+            const fields = document.getElementById('new-collection-fields');
+            
+            if (select.value === '__CREATE_NEW__') {
+                fields.style.display = 'block';
+                // Set preview to rule name
+                const ruleName = document.getElementById('rule-name').value || 'Example Rule';
+                document.getElementById('collection-preview-input').textContent = ruleName;
+                previewCollectionName();
+            } else {
+                fields.style.display = 'none';
+            }
+        }
+        
+        function toggleCollectionRegexBuilder() {
+            const builder = document.getElementById('collection-regex-builder');
+            const toggle = document.getElementById('collection-regex-toggle');
+            
+            if (builder.style.display === 'none') {
+                builder.style.display = 'block';
+                toggle.textContent = 'Hide Regex Builder';
+            } else {
+                builder.style.display = 'none';
+                toggle.textContent = 'Show Regex Builder';
+            }
+        }
+        
+        function applyCollectionRegexTemplate(template) {
+            const findInput = document.getElementById('collection-regex-find');
+            const replaceInput = document.getElementById('collection-regex-replace');
+            
+            const templates = {
+                removePrefix: { find: '^[A-Z]+\\|\\s*', replace: '' },
+                removeSuffix: { find: '\\s*[ᴴᴰᴿᴬᵂ⁴ᴷ]+$', replace: '' },
+                replaceText: { find: '\\|', replace: ' - ' },
+                removeSpecial: { find: '[ᴴᴰᴿᴬᵂ⁴ᴷ\\|]+', replace: '' },
+                extractPart: { find: '^.*\\|\\s*(.*)$', replace: '$1' }
+            };
+            
+            if (templates[template]) {
+                findInput.value = templates[template].find;
+                replaceInput.value = templates[template].replace;
+                previewCollectionName();
+            }
+        }
+        
+        function previewCollectionName() {
+            // Get inputs
+            const ruleName = document.getElementById('rule-name').value || 'Example Rule';
+            const customName = document.getElementById('new-collection-name').value;
+            const findPattern = document.getElementById('collection-regex-find').value;
+            const replaceWith = document.getElementById('collection-regex-replace').value;
+            
+            // Start with custom name or rule name
+            let collectionName = customName || ruleName;
+            
+            // Apply regex if provided
+            if (findPattern) {
+                try {
+                    const regex = new RegExp(findPattern, 'g');
+                    collectionName = collectionName.replace(regex, replaceWith);
+                } catch (e) {
+                    // Invalid regex, show error
+                    collectionName = `[Invalid Regex: ${e.message}]`;
+                }
+            }
+            
+            // Update preview
+            document.getElementById('collection-preview-input').textContent = customName || ruleName;
+            document.getElementById('collection-preview-output').textContent = collectionName;
+            document.getElementById('final-collection-name').textContent = collectionName;
+        }
+        
+        // Update preview when rule name changes
+        document.addEventListener('DOMContentLoaded', function() {
+            const ruleNameInput = document.getElementById('rule-name');
+            if (ruleNameInput) {
+                ruleNameInput.addEventListener('input', previewCollectionName);
+            }
+        });
         
         function closeRuleModal() {
             document.getElementById('rule-modal').classList.remove('active');
@@ -2859,6 +3241,53 @@
                 return;
             }
             
+            // Handle collection selection or creation
+            let collectionSlug = document.getElementById('collection-slug').value;
+            
+            if (collectionSlug === '__CREATE_NEW__') {
+                // Create new collection
+                const ruleName = document.getElementById('rule-name').value;
+                const customName = document.getElementById('new-collection-name').value;
+                const findPattern = document.getElementById('collection-regex-find').value;
+                const replaceWith = document.getElementById('collection-regex-replace').value;
+                
+                // Calculate final collection name
+                let collectionName = customName || ruleName;
+                
+                // Apply regex transform if provided
+                if (findPattern) {
+                    try {
+                        const regex = new RegExp(findPattern, 'g');
+                        collectionName = collectionName.replace(regex, replaceWith);
+                    } catch (e) {
+                        showAlert(`Invalid regex pattern: ${e.message}`, 'error');
+                        return;
+                    }
+                }
+                
+                // Check if collection exists or create it
+                try {
+                    const createResponse = await fetch('/api/collections/get-or-create', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name: collectionName })
+                    });
+                    
+                    if (!createResponse.ok) {
+                        throw new Error('Failed to create collection');
+                    }
+                    
+                    const collectionData = await createResponse.json();
+                    collectionSlug = collectionData.slug;
+                    
+                    console.log(`Collection "${collectionName}" ready (slug: ${collectionSlug}, ${collectionData.created ? 'created new' : 'using existing'})`);
+                    
+                } catch (error) {
+                    showAlert(`Error creating collection: ${error.message}`, 'error');
+                    return;
+                }
+            }
+            
             // Handle sort order
             let sortOrder = document.getElementById('sort-order').value;
             if (sortOrder === 'custom_regex') {
@@ -2883,7 +3312,7 @@
             const ruleData = {
                 name: document.getElementById('rule-name').value,
                 group: document.getElementById('rule-group').value.trim() || null,
-                collection_slug: document.getElementById('collection-slug').value,
+                collection_slug: collectionSlug,
                 patterns: currentPatterns,
                 pattern_metadata: patternMetadata, // Save metadata with rule
                 match_types: matchTypes,
@@ -3163,6 +3592,539 @@
             } catch (error) {
                 console.error('Error deleting template:', error);
                 showAlert('Error deleting template', 'error');
+            }
+        }
+        
+        // ============================================================================
+        // Dispatcharr Integration Functions
+        // ============================================================================
+        
+        let allDispatcharrGroups = [];
+        
+        function toggleDispatcharrView() {
+            const rulesSection = document.querySelector('.rules-section');
+            const dispatcharrSection = document.getElementById('dispatcharr-section');
+            const toggleBtn = document.getElementById('dispatcharr-toggle-btn');
+            
+            if (dispatcharrSection.style.display === 'none') {
+                // Show Dispatcharr, hide rules
+                rulesSection.style.display = 'none';
+                dispatcharrSection.style.display = 'block';
+                toggleBtn.textContent = '← Back to Rules';
+                
+                // Load groups (simple, fast)
+                loadDispatcharrGroups();
+                
+            } else {
+                // Show rules, hide Dispatcharr
+                rulesSection.style.display = 'block';
+                dispatcharrSection.style.display = 'none';
+                toggleBtn.textContent = '📡 Dispatcharr';
+            }
+        }
+        
+        async function loadDispatcharrGroupsWithPreload() {
+            // Just load groups (no preload needed anymore)
+            await loadDispatcharrGroups();
+        }
+        
+        async function showDispatcharrSettings() {
+            document.getElementById('dispatcharr-settings-modal').classList.add('active');
+            await loadDispatcharrConfig();
+        }
+        
+        function closeDispatcharrSettings() {
+            document.getElementById('dispatcharr-settings-modal').classList.remove('active');
+        }
+        
+        async function loadDispatcharrConfig() {
+            try {
+                const response = await fetch('/api/dispatcharr/config');
+                const config = await response.json();
+                
+                document.getElementById('dispatcharr-enabled').checked = config.enabled || false;
+                document.getElementById('dispatcharr-url').value = config.url || '';
+                document.getElementById('dispatcharr-username').value = config.username || '';
+                document.getElementById('dispatcharr-password').value = '';
+                
+                // Update test result area
+                document.getElementById('dispatcharr-test-result').innerHTML = '';
+            } catch (error) {
+                console.error('Error loading Dispatcharr config:', error);
+                showAlert('Error loading Dispatcharr settings', 'error');
+            }
+        }
+        
+        async function saveDispatcharrSettings() {
+            try {
+                const config = {
+                    enabled: document.getElementById('dispatcharr-enabled').checked,
+                    url: document.getElementById('dispatcharr-url').value.trim(),
+                    username: document.getElementById('dispatcharr-username').value.trim(),
+                    password: document.getElementById('dispatcharr-password').value
+                };
+                
+                const response = await fetch('/api/dispatcharr/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                
+                if (response.ok) {
+                    showAlert('Dispatcharr settings saved successfully!', 'success');
+                    closeDispatcharrSettings();
+                } else {
+                    throw new Error('Failed to save settings');
+                }
+            } catch (error) {
+                console.error('Error saving Dispatcharr settings:', error);
+                showAlert('Error saving Dispatcharr settings', 'error');
+            }
+        }
+        
+        async function testDispatcharrConnection() {
+            const resultDiv = document.getElementById('dispatcharr-test-result');
+            resultDiv.innerHTML = '<div style="color: #666;">🔄 Testing connection...</div>';
+            
+            try {
+                const url = document.getElementById('dispatcharr-url').value.trim();
+                const username = document.getElementById('dispatcharr-username').value.trim();
+                let password = document.getElementById('dispatcharr-password').value;
+                
+                // Validate inputs
+                if (!url) {
+                    resultDiv.innerHTML = '<div class="alert-error">Please enter Dispatcharr URL</div>';
+                    return;
+                }
+                if (!username) {
+                    resultDiv.innerHTML = '<div class="alert-error">Please enter username</div>';
+                    return;
+                }
+                
+                // If no password entered, get from stored config
+                if (!password) {
+                    const configResponse = await fetch('/api/dispatcharr/config');
+                    const config = await configResponse.json();
+                    
+                    if (!config.has_password) {
+                        resultDiv.innerHTML = '<div class="alert-error">Please enter password (no password stored)</div>';
+                        return;
+                    }
+                    
+                    // Use a placeholder - backend will use stored password
+                    password = '__USE_STORED__';
+                }
+                
+                const config = {
+                    url: url,
+                    username: username,
+                    password: password
+                };
+                
+                console.log('Testing connection with:', { url, username, password: '***' });
+                
+                const response = await fetch('/api/dispatcharr/test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    resultDiv.innerHTML = `
+                        <div class="alert-success">
+                            <strong>✅ Connection Successful!</strong><br>
+                            ${result.message}<br>
+                            <small>
+                                • ${result.accounts_count} M3U account(s)<br>
+                                • ${result.groups_count} total group(s)<br>
+                                • ${result.enabled_groups_count} enabled group(s)
+                            </small>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="alert-error">
+                            <strong>❌ Connection Failed</strong><br>
+                            ${result.message}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error testing Dispatcharr connection:', error);
+                resultDiv.innerHTML = `
+                    <div class="alert-error">
+                        <strong>❌ Connection Failed</strong><br>
+                        ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        async function loadDispatcharrGroups() {
+            const container = document.getElementById('dispatcharr-groups-grid');
+            container.innerHTML = '<div class="loading">Loading Dispatcharr groups...</div>';
+            
+            try {
+                const response = await fetch('/api/dispatcharr/groups');
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to load groups');
+                }
+                
+                allDispatcharrGroups = await response.json();
+                
+                console.log(`Loaded ${allDispatcharrGroups.length} groups with channels`);
+                
+                // Populate provider filter
+                populateProviderFilter(allDispatcharrGroups);
+                
+                // Display groups immediately
+                filterDispatcharrGroups();
+                
+            } catch (error) {
+                console.error('Error loading Dispatcharr groups:', error);
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <p>Failed to load Dispatcharr groups</p>
+                        <p style="color: #666; font-size: 14px;">${error.message}</p>
+                        <p style="margin-top: 15px;">
+                            <button class="btn btn-secondary" onclick="showDispatcharrSettings()">
+                                Configure Dispatcharr
+                            </button>
+                        </p>
+                    </div>
+                `;
+            }
+        }
+        
+        
+        function displayDispatcharrGroups(groups) {
+            const container = document.getElementById('dispatcharr-groups-grid');
+            
+            if (groups.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <p>No enabled Dispatcharr groups found</p>
+                        <p style="color: #666; font-size: 14px;">Make sure you have enabled groups in Dispatcharr with channels assigned</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = groups.map(group => `
+                <div class="dispatcharr-group-card">
+                    <div class="dispatcharr-group-header">
+                        <span class="checkmark">✓</span>
+                        <span>${group.name}</span>
+                    </div>
+                    <div class="dispatcharr-group-body">
+                        <div class="dispatcharr-group-info">
+                            <span class="icon">📊</span>
+                            <span>${group.channel_count} channel${group.channel_count !== 1 ? 's' : ''}</span>
+                        </div>
+                        <div class="dispatcharr-group-info">
+                            <span class="icon">${(group.m3u_account_count || 0) > 0 ? '📡' : '📂'}</span>
+                            <span>${(group.m3u_account_count || 0) > 0 ? group.m3u_account_name : 'Local'}</span>
+                        </div>
+                        ${group.auto_channel_sync ? `
+                            <div class="dispatcharr-group-info">
+                                <span class="icon">🔄</span>
+                                <span class="dispatcharr-auto-sync-badge">Auto Sync</span>
+                            </div>
+                        ` : ''}
+                        ${group.channel_pattern ? `
+                            <div class="dispatcharr-group-info">
+                                <span class="icon">#</span>
+                                <span style="font-size: 12px; color: #10b981; font-weight: 500;">${group.channel_pattern}</span>
+                            </div>
+                        ` : ''}
+                        <button class="dispatcharr-create-btn" onclick="getDispatcharrChannels(${group.id}, '${group.name.replace(/'/g, "\\'")}')" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); margin-bottom: 8px;">
+                            📥 Get Channels
+                        </button>
+                        <button class="dispatcharr-create-btn" onclick="viewDispatcharrChannels(${group.id}, '${group.name.replace(/'/g, "\\'")}', ${group.auto_sync_channel_start}, ${group.channel_count})" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); margin-bottom: 8px;">
+                            👁️ View Channels
+                        </button>
+                        <button class="dispatcharr-create-btn" onclick="createRuleFromDispatcharrGroup(${group.id})">
+                            ➕ Create Rule
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function filterDispatcharrGroups() {
+            const searchTerm = document.getElementById('dispatcharr-search').value.toLowerCase();
+            const typeFilter = document.getElementById('dispatcharr-type-filter').value;
+            const filter = document.getElementById('dispatcharr-filter').value;
+            const providerFilter = document.getElementById('dispatcharr-provider-filter').value;
+            const hasChannelsOnly = document.getElementById('dispatcharr-has-channels').checked;
+            
+            let filtered = allDispatcharrGroups;
+            
+            // Apply group type filter
+            if (typeFilter === 'provider') {
+                filtered = filtered.filter(group => (group.m3u_account_count || 0) > 0);
+            } else if (typeFilter === 'local') {
+                filtered = filtered.filter(group => (group.m3u_account_count || 0) === 0);
+            }
+            
+            // Show/hide provider filter based on type
+            const providerFilterElement = document.getElementById('dispatcharr-provider-filter');
+            if (typeFilter === 'local') {
+                providerFilterElement.style.display = 'none';
+            } else {
+                providerFilterElement.style.display = 'block';
+            }
+            
+            // Apply search filter
+            if (searchTerm) {
+                filtered = filtered.filter(group =>
+                    group.name.toLowerCase().includes(searchTerm) ||
+                    (group.m3u_account_name && group.m3u_account_name.toLowerCase().includes(searchTerm))
+                );
+            }
+            
+            // Apply status filter
+            if (filter === 'auto-sync') {
+                filtered = filtered.filter(group => group.auto_channel_sync);
+            }
+            
+            // Apply provider filter
+            if (providerFilter !== 'all' && typeFilter !== 'local') {
+                filtered = filtered.filter(group => group.m3u_account_name === providerFilter);
+            }
+            
+            // Apply assigned channel count filter
+            if (hasChannelsOnly) {
+                filtered = filtered.filter(group => group.channel_count > 0);
+            }
+            
+            displayDispatcharrGroups(filtered);
+        }
+        
+        function populateProviderFilter(groups) {
+            const providerFilter = document.getElementById('dispatcharr-provider-filter');
+            
+            // Get unique providers
+            const providers = [...new Set(groups.map(g => g.m3u_account_name))].sort();
+            
+            // Populate dropdown
+            providerFilter.innerHTML = '<option value="all">All Providers</option>' +
+                providers.map(p => `<option value="${p}">${p}</option>`).join('');
+        }
+        
+        async function getDispatcharrChannels(groupId, groupName) {
+            try {
+                console.log(`Fetching channels for group: ${groupName}`);
+                
+                const response = await fetch(`/api/dispatcharr/groups/${groupId}/channels`);
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to load channels');
+                }
+                
+                const data = await response.json();
+                
+                // Update group with pattern
+                const group = allDispatcharrGroups.find(g => g.id === groupId);
+                if (group && data.smart_pattern) {
+                    group.channel_pattern = data.smart_pattern;
+                    
+                    // Refresh display to show pattern on card
+                    filterDispatcharrGroups();
+                    
+                    showAlert(`✅ Got channels for "${groupName}": ${data.smart_pattern}`, 'success');
+                } else {
+                    showAlert(`No channels found for "${groupName}"`, 'info');
+                }
+                
+            } catch (error) {
+                console.error('Error getting channels:', error);
+                showAlert(`Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function viewDispatcharrChannels(groupId, groupName, startChannel, channelCount) {
+            // Open modal
+            document.getElementById('dispatcharr-channels-modal').classList.add('active');
+            document.getElementById('dispatcharr-channels-title').textContent = `📺 ${groupName}`;
+            
+            const listDiv = document.getElementById('dispatcharr-channels-list');
+            listDiv.innerHTML = '<div class="loading">Loading channels...</div>';
+            
+            try {
+                const response = await fetch(`/api/dispatcharr/groups/${groupId}/channels`);
+
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to load channels');
+                }
+                
+                const data = await response.json();
+                const channels = data.channels;
+                
+                if (channels.length === 0) {
+                    listDiv.innerHTML = `
+                        <div style="text-align: center; padding: 40px; color: #999;">
+                            <p>No channels found assigned from this group</p>
+                            <p style="font-size: 14px; margin-top: 10px;">
+                                This group has ${data.total_streams} stream(s) but none are assigned to Channels DVR channels yet.
+                            </p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // Extract unique channel numbers and generate smart pattern
+                const channelNumbers = channels.map(c => c.channel_number).filter(n => n != null).sort((a, b) => a - b);
+                const smartPattern = data.smart_pattern || generateChannelPattern(channelNumbers);
+                
+                // Cache the pattern in the group data for display on card
+                const group = allDispatcharrGroups.find(g => g.id === groupId);
+                if (group) {
+                    group.channel_pattern = smartPattern;
+                    // Refresh display to show updated card
+                    filterDispatcharrGroups();
+                }
+                
+                listDiv.innerHTML = `
+                    <div style="margin-bottom: 15px; padding: 15px; background: #f0f4ff; border-radius: 6px; border-left: 4px solid #667eea;">
+                        <strong>Total Channels:</strong> ${channels.length}<br>
+                        <strong>Streams in Group:</strong> ${data.total_streams}
+                    </div>
+                    
+                    <div style="color: #666; margin-bottom: 10px; font-weight: 600;">
+                        Assigned Channels:
+                    </div>
+                    
+                    <div style="max-height: 400px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 6px;">
+                        ${channels.map(ch => `
+                            <div style="padding: 12px 15px; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; gap: 15px; background: white;">
+                                <div style="min-width: 60px; padding: 6px 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 4px; font-weight: 600; text-align: center;">
+                                    ${ch.channel_number || 'N/A'}
+                                </div>
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 500; color: #1f2937;">${ch.name}</div>
+                                    <div style="font-size: 12px; color: #6b7280;">${ch.streams_count} stream(s)</div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    <div style="margin-top: 20px; padding: 15px; background: #fffbf0; border-radius: 6px; border-left: 4px solid #f59e0b;">
+                        <strong>💡 Pattern Suggestion:</strong><br>
+                        To match these channels, use pattern: <code style="background: #f3f4f6; padding: 2px 6px; border-radius: 3px; font-weight: 600;">${smartPattern}</code><br>
+                        <span style="font-size: 13px; color: #666;">This pattern matches all ${channels.length} assigned channels</span>
+                    </div>
+                `;
+                
+            } catch (error) {
+                console.error('Error loading channels:', error);
+                listDiv.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #e11d48;">
+                        <p><strong>Error loading channels</strong></p>
+                        <p style="font-size: 14px; margin-top: 10px;">${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        function closeDispatcharrChannelsModal() {
+            document.getElementById('dispatcharr-channels-modal').classList.remove('active');
+        }
+        
+        // Generate smart pattern from channel numbers - handles gaps
+        function generateChannelPattern(channelNumbers) {
+            if (!channelNumbers || channelNumbers.length === 0) return '';
+            
+            // Sort numbers and ensure they're integers
+            const sorted = [...channelNumbers].map(n => Math.floor(n)).sort((a, b) => a - b);
+            
+            // Group consecutive numbers into ranges
+            const ranges = [];
+            let rangeStart = sorted[0];
+            let rangeEnd = sorted[0];
+            
+            for (let i = 1; i <= sorted.length; i++) {
+                if (i < sorted.length && sorted[i] === rangeEnd + 1) {
+                    // Consecutive number, extend range
+                    rangeEnd = sorted[i];
+                } else {
+                    // Gap or end of array, close current range
+                    if (rangeStart === rangeEnd) {
+                        // Single number
+                        ranges.push(`${rangeStart}`);
+                    } else {
+                        // Range
+                        ranges.push(`${rangeStart}-${rangeEnd}`);
+                    }
+                    
+                    // Start new range
+                    if (i < sorted.length) {
+                        rangeStart = sorted[i];
+                        rangeEnd = sorted[i];
+                    }
+                }
+            }
+            
+            return ranges.join(',');
+        }
+        
+        async function createRuleFromDispatcharrGroup(groupId) {
+            try {
+                const response = await fetch(`/api/dispatcharr/groups/${groupId}/create-rule`, {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(result.error || 'Failed to create rule template');
+                }
+                
+                // Switch back to rules view
+                toggleDispatcharrView();
+                
+                // Open rule modal with pre-filled data
+                const ruleData = result.rule_template;
+                
+                // Create new rule object
+                editingRuleId = null;
+                currentPatterns = ruleData.patterns;
+                patternMetadata = ruleData.pattern_metadata || {};
+                
+                document.getElementById('modal-title').textContent = 'Create Rule from Dispatcharr Group';
+                document.getElementById('rule-id').value = '';
+                document.getElementById('rule-name').value = ruleData.name;
+                document.getElementById('rule-group').value = ruleData.group;
+                
+                // Set match types
+                document.querySelectorAll('input[name="match-type"]').forEach(cb => {
+                    cb.checked = ruleData.match_types.includes(cb.value);
+                });
+                
+                // Set sort order
+                document.getElementById('sort-order').value = ruleData.sort_order;
+                
+                // Set enabled
+                document.getElementById('rule-enabled').checked = ruleData.enabled;
+                
+                // Display patterns
+                displayPatterns();
+                
+                // Open modal
+                document.getElementById('rule-modal').classList.add('active');
+                
+                showAlert(`Rule template created from "${ruleData.name}" - Select a collection and save!`, 'success');
+                
+            } catch (error) {
+                console.error('Error creating rule from Dispatcharr group:', error);
+                showAlert(`Error: ${error.message}`, 'error');
             }
         }
         
@@ -3463,7 +4425,7 @@
     
     <footer style="text-align: center; padding: 30px 20px; color: #7f8c8d; font-size: 14px; border-top: 1px solid #ecf0f1; margin-top: 40px; background: #fff;">
         <div style="margin-bottom: 10px;">
-            Channels DVR Collection Manager <span id="app-version">v1.0.1</span>
+            Channels DVR Collection Manager <span id="app-version">v2.0.0</span>
         </div>
         <div>
             <a href="https://github.com/CurtisFeatures/channels-dvr-collection-manager" target="_blank" style="color: #6366f1; text-decoration: none;">
