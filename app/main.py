@@ -32,7 +32,37 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key')
 DVR_URL = os.environ.get('DVR_URL', 'http://channelsdvr:8089')
 CONFIG_FILE = '/config/rules.json'
 DISPATCHARR_CONFIG_FILE = '/config/dispatcharr.json'
-SYNC_INTERVAL = int(os.environ.get('SYNC_INTERVAL_MINUTES', '60'))
+SETTINGS_FILE = '/config/settings.json'
+SYNC_INTERVAL = int(os.environ.get('SYNC_INTERVAL_MINUTES', '60'))  # env var default
+
+
+def load_app_settings() -> Dict[str, Any]:
+    """Load application settings from settings file"""
+    try:
+        if os.path.exists(SETTINGS_FILE):
+            with open(SETTINGS_FILE, 'r') as f:
+                return json.load(f)
+    except Exception as e:
+        logger.error(f"Error loading app settings: {e}")
+    return {}
+
+
+def save_app_settings(settings: Dict[str, Any]) -> bool:
+    """Save application settings to settings file"""
+    try:
+        os.makedirs(os.path.dirname(SETTINGS_FILE), exist_ok=True)
+        with open(SETTINGS_FILE, 'w') as f:
+            json.dump(settings, f, indent=2)
+        return True
+    except Exception as e:
+        logger.error(f"Error saving app settings: {e}")
+        return False
+
+
+def get_sync_interval() -> int:
+    """Return effective global sync interval: settings file takes priority over env var"""
+    settings = load_app_settings()
+    return int(settings.get('sync_interval_minutes', SYNC_INTERVAL))
 
 
 
@@ -697,10 +727,45 @@ def api_status():
     return jsonify({
         'dvr_url': DVR_URL,
         'last_sync': sync_manager.last_sync.isoformat() if sync_manager.last_sync else None,
-        'sync_interval': SYNC_INTERVAL,
+        'sync_interval': get_sync_interval(),
         'rules_count': len(rule_manager.rules),
         'version': '1.0.1'
     })
+
+
+@app.route('/api/settings', methods=['GET'])
+def get_settings_route():
+    """Get application settings"""
+    settings = load_app_settings()
+    return jsonify({
+        'sync_interval_minutes': settings.get('sync_interval_minutes', SYNC_INTERVAL)
+    })
+
+
+@app.route('/api/settings', methods=['POST'])
+def save_settings_route():
+    """Save application settings and rebuild scheduler"""
+    try:
+        data = request.json or {}
+        settings = load_app_settings()
+
+        if 'sync_interval_minutes' in data:
+            interval = int(data['sync_interval_minutes'])
+            if interval < 1 or interval > 10080:  # max 1 week
+                return jsonify({'error': 'Sync interval must be between 1 and 10080 minutes'}), 400
+            settings['sync_interval_minutes'] = interval
+
+        if save_app_settings(settings):
+            # Rebuild scheduler so new interval takes effect immediately
+            setup_rule_schedulers()
+            logger.info(f"Settings saved: sync_interval={settings.get('sync_interval_minutes')} min")
+            return jsonify({'success': True, 'settings': settings})
+        else:
+            return jsonify({'error': 'Failed to save settings'}), 500
+
+    except Exception as e:
+        logger.error(f"Error saving settings: {e}")
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/api/debug/static')
@@ -771,12 +836,14 @@ def get_or_create_collection():
         collections = api.get_collections()
         
         # Check if collection with this name already exists (case-insensitive)
+        # Channels DVR returns 'name' field; guard against 'title' for compatibility
         for collection in collections:
-            if collection.get('title', '').lower() == collection_name.lower():
+            existing_name = (collection.get('name') or collection.get('title') or '').strip()
+            if existing_name.lower() == collection_name.lower():
                 logger.info(f"Collection '{collection_name}' already exists (slug: {collection.get('slug')})")
                 return jsonify({
                     'slug': collection.get('slug'),
-                    'name': collection.get('title'),
+                    'name': existing_name,
                     'created': False,
                     'message': f"Using existing collection '{collection_name}'"
                 })
@@ -1690,16 +1757,20 @@ def scheduled_sync():
 def setup_rule_schedulers():
     """Setup individual schedulers for rules with custom sync intervals"""
     scheduler.remove_all_jobs()
-    
+
+    # Use effective sync interval (settings file overrides env var)
+    effective_interval = get_sync_interval()
+
     # Add main global sync job
     scheduler.add_job(
         func=scheduled_sync,
         trigger='interval',
-        minutes=SYNC_INTERVAL,
+        minutes=effective_interval,
         id='global_sync',
         name='Global sync',
         replace_existing=True
     )
+    logger.info(f"Global sync scheduled every {effective_interval} minutes")
     
     # Add per-rule sync jobs for rules with custom intervals
     for rule in rule_manager.rules:

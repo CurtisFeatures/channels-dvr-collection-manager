@@ -739,6 +739,7 @@
             </div>
             <div style="display: flex; gap: 10px;">
                 <button class="btn btn-secondary" onclick="testConnection()">🔌 Test DVR Connection</button>
+                <button class="btn btn-secondary" onclick="openSettingsModal()">⚙️ Settings</button>
                 <button class="btn btn-success" onclick="triggerSync()">🔄 Sync Now</button>
             </div>
         </div>
@@ -996,6 +997,43 @@
         </div>
     </div>
     
+    <!-- App Settings Modal -->
+    <div id="app-settings-modal" class="modal">
+        <div class="modal-overlay" onclick="closeSettingsModal()"></div>
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3>⚙️ App Settings</h3>
+                <button class="modal-close" onclick="closeSettingsModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div style="background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+                    <h4 style="margin: 0 0 15px 0; color: #2c3e50;">🔄 Global Sync Schedule</h4>
+
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="settings-sync-interval" style="font-weight: 600;">Sync Interval (minutes)</label>
+                        <div style="display: flex; gap: 10px; align-items: center; margin-top: 8px;">
+                            <input type="number" id="settings-sync-interval"
+                                   min="1" max="10080" step="1"
+                                   style="width: 120px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 15px;">
+                            <span style="color: #666;">minutes</span>
+                        </div>
+                        <small style="display: block; color: #666; margin-top: 8px;">
+                            How often all rules are synced automatically. Overrides the
+                            <code>SYNC_INTERVAL_MINUTES</code> docker-compose value.<br>
+                            Individual rules can further override this with their own
+                            <em>Sync Interval Override</em>.
+                        </small>
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                    <button class="btn btn-secondary" onclick="closeSettingsModal()">Cancel</button>
+                    <button class="btn btn-success" onclick="saveAppSettings()">💾 Save Settings</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Rule Modal -->
     <div id="rule-modal" class="modal">
         <div class="modal-content">
@@ -2749,11 +2787,6 @@
                 autoSyncSection.style.display = 'none';
                 autoSyncCheckbox.checked = false;
             }
-            // Reset disabled states before applying autosync toggle
-            document.getElementById('sync-interval-override').disabled = false;
-            document.getElementById('sync-interval-override').style.opacity = '';
-            document.getElementById('schedule-enabled').disabled = false;
-            document.getElementById('schedule-enabled').style.opacity = '';
             if (autoSyncCheckbox.checked) {
                 handleAutoSyncToggle(true);
             }
@@ -2850,36 +2883,16 @@
         }
 
         function handleAutoSyncToggle(isChecked) {
-            const syncIntervalInput = document.getElementById('sync-interval-override');
-            const scheduleEnabled = document.getElementById('schedule-enabled');
-            const scheduleFields = document.getElementById('schedule-fields');
             const refreshSources = document.getElementById('refresh-sources-before-sync');
             const ruleEnabled = document.getElementById('rule-enabled');
 
             if (isChecked) {
-                // Grey out and disable sync interval override
-                syncIntervalInput.disabled = true;
-                syncIntervalInput.style.opacity = '0.4';
-                syncIntervalInput.value = '';
-
-                // Grey out and uncheck schedule
-                scheduleEnabled.disabled = true;
-                scheduleEnabled.style.opacity = '0.4';
-                scheduleEnabled.checked = false;
-                scheduleFields.style.display = 'none';
-
-                // Force-check refresh sources and enable rule
+                // AutoSync requires refresh sources and rule to be enabled
                 refreshSources.checked = true;
                 ruleEnabled.checked = true;
-            } else {
-                // Re-enable sync interval override
-                syncIntervalInput.disabled = false;
-                syncIntervalInput.style.opacity = '';
-
-                // Re-enable schedule
-                scheduleEnabled.disabled = false;
-                scheduleEnabled.style.opacity = '';
             }
+            // Sync interval and schedule fields remain fully editable —
+            // they control *when* the AutoSync runs
         }
 
         function toggleNewCollectionFields() {
@@ -3710,7 +3723,50 @@
         function closeDispatcharrSettings() {
             document.getElementById('dispatcharr-settings-modal').classList.remove('active');
         }
-        
+
+        // ── App Settings Modal ────────────────────────────────────────────────
+        async function openSettingsModal() {
+            try {
+                const response = await fetch('/api/settings');
+                const settings = await response.json();
+                document.getElementById('settings-sync-interval').value = settings.sync_interval_minutes || 60;
+            } catch (e) {
+                console.error('Error loading settings:', e);
+            }
+            document.getElementById('app-settings-modal').classList.add('active');
+        }
+
+        function closeSettingsModal() {
+            document.getElementById('app-settings-modal').classList.remove('active');
+        }
+
+        async function saveAppSettings() {
+            const intervalVal = document.getElementById('settings-sync-interval').value;
+            const interval = parseInt(intervalVal);
+            if (!interval || interval < 1) {
+                showAlert('Sync interval must be at least 1 minute', 'error');
+                return;
+            }
+            try {
+                const response = await fetch('/api/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sync_interval_minutes: interval })
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    showAlert(`✅ Settings saved — global sync every ${interval} min`, 'success');
+                    closeSettingsModal();
+                    loadStatus(); // refresh the status bar
+                } else {
+                    showAlert(`Error: ${result.error}`, 'error');
+                }
+            } catch (e) {
+                showAlert(`Error saving settings: ${e.message}`, 'error');
+            }
+        }
+        // ── End App Settings Modal ────────────────────────────────────────────
+
         async function loadDispatcharrConfig() {
             try {
                 const response = await fetch('/api/dispatcharr/config');
@@ -4208,12 +4264,7 @@
                 document.getElementById('dispatcharr-autosync-section').style.display = 'block';
                 // Pre-check AutoSync if Dispatcharr group has auto_channel_sync enabled
                 const autoSyncCheckbox = document.getElementById('dispatcharr-autosync');
-                autoSyncCheckbox.checked = ruleData.enabled; // mirrors auto_channel_sync
-                // Reset disabled states before toggling
-                document.getElementById('sync-interval-override').disabled = false;
-                document.getElementById('sync-interval-override').style.opacity = '';
-                document.getElementById('schedule-enabled').disabled = false;
-                document.getElementById('schedule-enabled').style.opacity = '';
+                autoSyncCheckbox.checked = ruleData.dispatcharr_autosync || false;
                 if (autoSyncCheckbox.checked) {
                     handleAutoSyncToggle(true);
                 }
