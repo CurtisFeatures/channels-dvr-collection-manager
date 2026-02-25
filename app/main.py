@@ -5,12 +5,18 @@ import json
 import logging
 import uuid
 from datetime import datetime, time
-from typing import List, Dict, Any, Set
+from typing import List, Dict, Any, Set, Optional
 from flask import Flask, render_template, request, jsonify, send_file
 from apscheduler.schedulers.background import BackgroundScheduler
 import requests
 import tempfile
 from io import BytesIO
+
+# Import Dispatcharr client
+try:
+    from dispatcharr_client import DispatcharrClient
+except ImportError:
+    from app.dispatcharr_client import DispatcharrClient
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -25,7 +31,39 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key')
 # Configuration
 DVR_URL = os.environ.get('DVR_URL', 'http://channelsdvr:8089')
 CONFIG_FILE = '/config/rules.json'
-SYNC_INTERVAL = int(os.environ.get('SYNC_INTERVAL_MINUTES', '60'))
+DISPATCHARR_CONFIG_FILE = '/config/dispatcharr.json'
+SETTINGS_FILE = '/config/settings.json'
+SYNC_INTERVAL = int(os.environ.get('SYNC_INTERVAL_MINUTES', '60'))  # env var default
+
+
+def load_app_settings() -> Dict[str, Any]:
+    """Load application settings from settings file"""
+    try:
+        if os.path.exists(SETTINGS_FILE):
+            with open(SETTINGS_FILE, 'r') as f:
+                return json.load(f)
+    except Exception as e:
+        logger.error(f"Error loading app settings: {e}")
+    return {}
+
+
+def save_app_settings(settings: Dict[str, Any]) -> bool:
+    """Save application settings to settings file"""
+    try:
+        os.makedirs(os.path.dirname(SETTINGS_FILE), exist_ok=True)
+        with open(SETTINGS_FILE, 'w') as f:
+            json.dump(settings, f, indent=2)
+        return True
+    except Exception as e:
+        logger.error(f"Error saving app settings: {e}")
+        return False
+
+
+def get_sync_interval() -> int:
+    """Return effective global sync interval: settings file takes priority over env var"""
+    settings = load_app_settings()
+    return int(settings.get('sync_interval_minutes', SYNC_INTERVAL))
+
 
 
 def is_rule_scheduled_now(rule: Dict[str, Any]) -> bool:
@@ -235,8 +273,17 @@ class RuleManager:
                 # Check channel number
                 if 'number' in match_types:
                     channel_number = str(channel.get('GuideNumber', ''))
-                    if regex.search(channel_number):
-                        return True
+                    # Use word boundaries to prevent partial matches (e.g., 400 shouldn't match 6400)
+                    # Add word boundary if pattern is purely numeric
+                    if pattern.replace('.', '').replace(',', '').isdigit():
+                        # Pure number pattern - use exact word boundary matching
+                        bounded_pattern = r'\b' + re.escape(pattern) + r'\b'
+                        if re.search(bounded_pattern, channel_number):
+                            return True
+                    else:
+                        # Non-numeric pattern - use normal regex
+                        if regex.search(channel_number):
+                            return True
                 
                 # Check EPG data (callsign, affiliate, etc)
                 if 'epg' in match_types:
@@ -415,7 +462,18 @@ class SyncManager:
         if not rule.get('enabled'):
             logger.warning(f"Rule {rule_id} is disabled, skipping")
             return {'error': 'Rule is disabled'}
-        
+
+        # AutoSync: update patterns from Dispatcharr before syncing
+        if rule.get('dispatcharr_autosync') and rule.get('_dispatcharr_group_id'):
+            logger.info(f"AutoSync: fetching latest channels for rule '{rule.get('name')}' from Dispatcharr")
+            autosync_result = _update_rule_patterns_from_dispatcharr(rule)
+            if autosync_result['success']:
+                logger.info(f"AutoSync: updated patterns to {autosync_result.get('patterns')}")
+                # Reload rule with updated patterns
+                rule = next((r for r in self.rule_manager.rules if r.get('id') == rule_id), rule)
+            else:
+                logger.warning(f"AutoSync update failed: {autosync_result['message']} — proceeding with existing patterns")
+
         # Refresh sources and/or EPG if requested
         refresh_sources = rule.get('refresh_sources_before_sync', False)
         refresh_epg = rule.get('refresh_epg_before_sync', False)
@@ -509,28 +567,69 @@ class SyncManager:
             old_channels = set(collection.get('items', []))
             new_channels = set(channel_ids)
             
-            # Apply sorting
-            sort_order = rule.get('sort_order', 'none')
-            if sort_order != 'none':
-                channel_map = {ch.get('ID'): ch for ch in matching_channels}
-                sorted_ids = self._sort_channels(list(new_channels), channel_map, sort_order)
-                collection['items'] = sorted_ids
-            else:
-                collection['items'] = sorted(list(new_channels))
+            # Check if multiple rules target this collection
+            rules_for_collection = [r for r in self.rule_manager.rules 
+                                   if r.get('collection_slug') == collection_slug 
+                                   and r.get('enabled', False)]
             
-            if self.api.update_collection(collection_slug, collection):
-                added = new_channels - old_channels
-                removed = old_channels - new_channels
-                logger.info(f"✓ Rule sync complete: {len(new_channels)} channels (+{len(added)}, -{len(removed)})")
-                return {
-                    'success': True,
-                    'collection': collection.get('name'),
-                    'total': len(new_channels),
-                    'added': len(added),
-                    'removed': len(removed)
-                }
+            is_shared_collection = len(rules_for_collection) > 1
+            
+            if is_shared_collection:
+                # ADDITIVE MODE: Merge with existing channels, don't remove
+                logger.info(f"⚠️ Shared collection detected! {len(rules_for_collection)} rules target '{collection.get('name')}' - using additive mode")
+                
+                # Combine old and new channels (union)
+                combined_channels = old_channels | new_channels
+                
+                # Apply sorting to combined set
+                sort_order = rule.get('sort_order', 'none')
+                if sort_order != 'none':
+                    # Get channel details for all combined channels
+                    all_channel_map = {ch.get('ID'): ch for ch in all_channels}
+                    combined_channel_details = [all_channel_map.get(cid) for cid in combined_channels if all_channel_map.get(cid)]
+                    channel_map = {ch.get('ID'): ch for ch in combined_channel_details}
+                    sorted_ids = self._sort_channels(list(combined_channels), channel_map, sort_order)
+                    collection['items'] = sorted_ids
+                else:
+                    collection['items'] = sorted(list(combined_channels))
+                
+                if self.api.update_collection(collection_slug, collection):
+                    added = new_channels - old_channels
+                    logger.info(f"✓ Rule sync complete (ADDITIVE): {len(combined_channels)} total channels (+{len(added)}, -0 [shared collection])")
+                    return {
+                        'success': True,
+                        'collection': collection.get('name'),
+                        'total': len(combined_channels),
+                        'added': len(added),
+                        'removed': 0,
+                        'shared_collection': True,
+                        'rules_count': len(rules_for_collection)
+                    }
             else:
-                return {'error': 'Failed to update collection'}
+                # NORMAL MODE: Replace channels (add and remove)
+                # Apply sorting
+                sort_order = rule.get('sort_order', 'none')
+                if sort_order != 'none':
+                    channel_map = {ch.get('ID'): ch for ch in matching_channels}
+                    sorted_ids = self._sort_channels(list(new_channels), channel_map, sort_order)
+                    collection['items'] = sorted_ids
+                else:
+                    collection['items'] = sorted(list(new_channels))
+                
+                if self.api.update_collection(collection_slug, collection):
+                    added = new_channels - old_channels
+                    removed = old_channels - new_channels
+                    logger.info(f"✓ Rule sync complete: {len(new_channels)} channels (+{len(added)}, -{len(removed)})")
+                    return {
+                        'success': True,
+                        'collection': collection.get('name'),
+                        'total': len(new_channels),
+                        'added': len(added),
+                        'removed': len(removed),
+                        'shared_collection': False
+                    }
+                else:
+                    return {'error': 'Failed to update collection'}
         except Exception as e:
             logger.error(f"Error syncing rule {rule_id}: {e}")
             return {'error': str(e)}
@@ -669,10 +768,45 @@ def api_status():
     return jsonify({
         'dvr_url': DVR_URL,
         'last_sync': sync_manager.last_sync.isoformat() if sync_manager.last_sync else None,
-        'sync_interval': SYNC_INTERVAL,
+        'sync_interval': get_sync_interval(),
         'rules_count': len(rule_manager.rules),
         'version': '1.0.1'
     })
+
+
+@app.route('/api/settings', methods=['GET'])
+def get_settings_route():
+    """Get application settings"""
+    settings = load_app_settings()
+    return jsonify({
+        'sync_interval_minutes': settings.get('sync_interval_minutes', SYNC_INTERVAL)
+    })
+
+
+@app.route('/api/settings', methods=['POST'])
+def save_settings_route():
+    """Save application settings and rebuild scheduler"""
+    try:
+        data = request.json or {}
+        settings = load_app_settings()
+
+        if 'sync_interval_minutes' in data:
+            interval = int(data['sync_interval_minutes'])
+            if interval < 1 or interval > 10080:  # max 1 week
+                return jsonify({'error': 'Sync interval must be between 1 and 10080 minutes'}), 400
+            settings['sync_interval_minutes'] = interval
+
+        if save_app_settings(settings):
+            # Rebuild scheduler so new interval takes effect immediately
+            setup_rule_schedulers()
+            logger.info(f"Settings saved: sync_interval={settings.get('sync_interval_minutes')} min")
+            return jsonify({'success': True, 'settings': settings})
+        else:
+            return jsonify({'error': 'Failed to save settings'}), 500
+
+    except Exception as e:
+        logger.error(f"Error saving settings: {e}")
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/api/debug/static')
@@ -727,6 +861,68 @@ def get_channels():
     """Get all available channels"""
     channels = api.get_channels()
     return jsonify(channels)
+
+
+@app.route('/api/collections/get-or-create', methods=['POST'])
+def get_or_create_collection():
+    """Get existing collection by name or create new one"""
+    try:
+        data = request.json
+        collection_name = data.get('name', '').strip()
+        
+        if not collection_name:
+            return jsonify({'error': 'Collection name is required'}), 400
+        
+        # Get all existing collections directly from API
+        collections = api.get_collections()
+        
+        # Check if collection with this name already exists (case-insensitive)
+        # Channels DVR returns 'name' field; guard against 'title' for compatibility
+        for collection in collections:
+            existing_name = (collection.get('name') or collection.get('title') or '').strip()
+            if existing_name.lower() == collection_name.lower():
+                logger.info(f"Collection '{collection_name}' already exists (slug: {collection.get('slug')})")
+                return jsonify({
+                    'slug': collection.get('slug'),
+                    'name': existing_name,
+                    'created': False,
+                    'message': f"Using existing collection '{collection_name}'"
+                })
+        
+        # Collection doesn't exist, create it using correct Channels DVR endpoint
+        create_url = f"{DVR_URL}/dvr/collections/channels/new"
+        
+        logger.info(f"Creating new collection '{collection_name}' at {create_url}")
+        
+        response = requests.post(
+            create_url,
+            json={'name': collection_name},
+            timeout=30
+        )
+        response.raise_for_status()
+        
+        new_collection = response.json()
+        collection_slug = new_collection.get('slug')
+        
+        logger.info(f"Created new collection '{collection_name}' (slug: {collection_slug})")
+        
+        return jsonify({
+            'slug': collection_slug,
+            'name': collection_name,
+            'created': True,
+            'message': f"Created new collection '{collection_name}'"
+        })
+        
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Error creating collection in Channels DVR: {e}")
+        if hasattr(e, 'response') and e.response is not None:
+            logger.error(f"Response status: {e.response.status_code}, body: {e.response.text}")
+        return jsonify({'error': f'Failed to create collection: {str(e)}'}), 500
+    except Exception as e:
+        logger.error(f"Error in get-or-create collection: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/api/collections')
@@ -1074,6 +1270,524 @@ def delete_template(template_id):
         return jsonify({'error': str(e)}), 500
 
 
+# ============================================================================
+# Dispatcharr Integration Routes
+# ============================================================================
+
+def load_dispatcharr_config() -> Dict[str, Any]:
+    """Load Dispatcharr configuration from file"""
+    try:
+        if os.path.exists(DISPATCHARR_CONFIG_FILE):
+            with open(DISPATCHARR_CONFIG_FILE, 'r') as f:
+                return json.load(f)
+    except Exception as e:
+        logger.error(f"Error loading Dispatcharr config: {e}")
+    
+    # Return default config
+    return {
+        'enabled': False,
+        'url': '',
+        'username': '',
+        'password': ''
+    }
+
+
+def save_dispatcharr_config(config: Dict[str, Any]) -> bool:
+    """Save Dispatcharr configuration to file"""
+    try:
+        with open(DISPATCHARR_CONFIG_FILE, 'w') as f:
+            json.dump(config, f, indent=2)
+        return True
+    except Exception as e:
+        logger.error(f"Error saving Dispatcharr config: {e}")
+        return False
+
+
+def get_dispatcharr_client() -> Optional[DispatcharrClient]:
+    """Get configured Dispatcharr client or None if not configured"""
+    config = load_dispatcharr_config()
+    
+    if not config.get('enabled', False):
+        return None
+    
+    if not all([config.get('url'), config.get('username'), config.get('password')]):
+        return None
+    
+    client = DispatcharrClient(
+        base_url=config['url'],
+        username=config['username'],
+        password=config['password']
+    )
+    
+    # Restore cached tokens if available
+    if config.get('access_token') and config.get('refresh_token'):
+        client.access_token = config['access_token']
+        client.refresh_token = config['refresh_token']
+        if config.get('token_expires_at'):
+            try:
+                client.token_expires_at = datetime.fromisoformat(config['token_expires_at'])
+                logger.info("Restored cached Dispatcharr tokens")
+            except:
+                pass
+    
+    return client
+
+
+@app.route('/api/dispatcharr/config', methods=['GET'])
+def get_dispatcharr_config():
+    """Get Dispatcharr configuration (without password)"""
+    try:
+        config = load_dispatcharr_config()
+        # Don't send password to frontend
+        safe_config = {
+            'enabled': config.get('enabled', False),
+            'url': config.get('url', ''),
+            'username': config.get('username', ''),
+            'has_password': bool(config.get('password', ''))
+        }
+        return jsonify(safe_config)
+    except Exception as e:
+        logger.error(f"Error getting Dispatcharr config: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/dispatcharr/config', methods=['POST'])
+def save_dispatcharr_config_route():
+    """Save Dispatcharr configuration"""
+    try:
+        data = request.json
+        
+        # Load existing config
+        config = load_dispatcharr_config()
+        
+        # Update config
+        config['enabled'] = data.get('enabled', False)
+        config['url'] = data.get('url', '').rstrip('/')
+        config['username'] = data.get('username', '')
+        
+        # Only update password if provided
+        if data.get('password'):
+            config['password'] = data.get('password')
+        
+        # Save config
+        if save_dispatcharr_config(config):
+            return jsonify({'success': True, 'message': 'Configuration saved'})
+        else:
+            return jsonify({'error': 'Failed to save configuration'}), 500
+            
+    except Exception as e:
+        logger.error(f"Error saving Dispatcharr config: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/dispatcharr/test', methods=['POST'])
+def test_dispatcharr_connection():
+    """Test Dispatcharr connection"""
+    try:
+        data = request.json
+        
+        logger.info(f"Received test request with data keys: {list(data.keys())}")
+        logger.info(f"URL: {data.get('url', 'MISSING')}")
+        logger.info(f"Username: '{data.get('username', 'MISSING')}' (type: {type(data.get('username'))})")
+        
+        password = data.get('password', '')
+        
+        # If placeholder sent, use stored password
+        if password == '__USE_STORED__':
+            config = load_dispatcharr_config()
+            password = config.get('password', '')
+            logger.info("Using stored password for test")
+        else:
+            logger.info(f"Password length: {len(password)}")
+        
+        # Create temporary client with provided credentials
+        client = DispatcharrClient(
+            base_url=data.get('url', '').rstrip('/'),
+            username=data.get('username', ''),
+            password=password
+        )
+        
+        # Test connection
+        result = client.test_connection()
+        
+        if result['success']:
+            return jsonify(result)
+        else:
+            return jsonify(result), 400
+            
+    except Exception as e:
+        logger.error(f"Error testing Dispatcharr connection: {e}")
+        return jsonify({
+            'success': False,
+            'message': f'Connection test failed: {str(e)}'
+        }), 500
+
+
+@app.route('/api/dispatcharr/groups', methods=['GET'])
+def get_dispatcharr_groups():
+    """Get all enabled Dispatcharr channel groups"""
+    try:
+        client = get_dispatcharr_client()
+
+        if not client:
+            return jsonify({
+                'error': 'Dispatcharr not configured or not enabled'
+            }), 400
+
+        # Get enabled groups
+        groups = client.get_enabled_groups()
+
+        # Build set of group IDs that already have an AutoSync rule
+        autosync_group_ids = {
+            r['_dispatcharr_group_id']
+            for r in rule_manager.rules
+            if r.get('dispatcharr_autosync') and r.get('_dispatcharr_group_id')
+        }
+
+        # Annotate each group with has_autosync_rule flag
+        for group in groups:
+            group['has_autosync_rule'] = group['id'] in autosync_group_ids
+
+        return jsonify(groups)
+
+    except Exception as e:
+        logger.error(f"Error getting Dispatcharr groups: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+def generate_channel_pattern(channel_numbers):
+    """
+    Generate smart pattern from channel numbers, handling gaps
+    Example: [101, 102, 103, 104, 107, 108] -> "101-104,107-108"
+    """
+    if not channel_numbers:
+        return ''
+    
+    # Sort numbers and ensure they're integers
+    sorted_nums = sorted([int(n) for n in channel_numbers])
+    
+    # Group consecutive numbers into ranges
+    ranges = []
+    range_start = sorted_nums[0]
+    range_end = sorted_nums[0]
+    
+    for i in range(1, len(sorted_nums) + 1):
+        if i < len(sorted_nums) and sorted_nums[i] == range_end + 1:
+            # Consecutive number, extend range
+            range_end = sorted_nums[i]
+        else:
+            # Gap or end of array, close current range
+            if range_start == range_end:
+                # Single number
+                ranges.append(str(range_start))
+            else:
+                # Range
+                ranges.append(f"{range_start}-{range_end}")
+            
+            # Start new range
+            if i < len(sorted_nums):
+                range_start = sorted_nums[i]
+                range_end = sorted_nums[i]
+    
+    return ','.join(ranges)
+
+
+@app.route('/api/dispatcharr/groups/<int:group_id>/channels', methods=['GET'])
+def get_dispatcharr_group_channels(group_id):
+    """Get actual channel assignments for a Dispatcharr group"""
+    try:
+        client = get_dispatcharr_client()
+        
+        if not client:
+            return jsonify({'error': 'Dispatcharr not configured'}), 400
+        
+        if not client._ensure_authenticated():
+            return jsonify({'error': 'Authentication failed'}), 401
+        
+        # Get all enabled groups to find M3U account name
+        enabled_groups = client.get_enabled_groups()
+        target_group = None
+        for g in enabled_groups:
+            if g['id'] == group_id:
+                target_group = g
+                break
+        
+        if not target_group:
+            return jsonify({'error': 'Group not found or not enabled'}), 404
+        
+        group_name = target_group['name']
+        m3u_account_name = target_group.get('m3u_account_name', '')
+        is_local_group = target_group.get('m3u_account_count', 0) == 0
+        
+        logger.info(f"Looking up channels for group: {group_name}, Type: {'Local' if is_local_group else 'Provider'}")
+        
+        # Get streams for this group
+        streams_url = f"{client.base_url}/api/channels/streams/"
+        
+        if is_local_group:
+            # Local groups: search by channel_group parameter
+            params = {
+                'channel_group': group_id
+            }
+            logger.info(f"Fetching streams for local group by channel_group={group_id}")
+        else:
+            # Provider groups: search by group name and M3U account
+            params = {
+                'channel_group_name': group_name,
+                'm3u_account_name': m3u_account_name
+            }
+            logger.info(f"Fetching streams for provider group: {group_name}, M3U account: {m3u_account_name}")
+        
+        response = requests.get(streams_url, headers=client._get_headers(), params=params, timeout=30)
+        response.raise_for_status()
+        
+        streams_data = response.json()
+        stream_ids = [s['id'] for s in streams_data.get('results', [])]
+        
+        logger.info(f"Found {len(stream_ids)} streams in group")
+        
+        # Get channels directly by channel_group_id
+        channels_url = f"{client.base_url}/api/channels/channels/"
+        channels_params = {'channel_group_id': group_id}
+        
+        response = requests.get(channels_url, headers=client._get_headers(), params=channels_params, timeout=30)
+        response.raise_for_status()
+        
+        channels_data = response.json()
+        
+        # Check if it's a list or paginated response
+        if isinstance(channels_data, dict):
+            # Paginated response
+            all_channels = channels_data.get('results', [])
+            logger.info(f"Retrieved {len(all_channels)} channels from API")
+        elif isinstance(channels_data, list):
+            # Direct list response
+            all_channels = channels_data
+            logger.info(f"Retrieved {len(all_channels)} channels from API")
+        else:
+            logger.error(f"Unexpected response type: {type(channels_data)}")
+            all_channels = []
+        
+        # Filter to only channels that EXACTLY match this group_id
+        # (the API parameter might return more than we want)
+        matched_channels = []
+        for channel in all_channels:
+            if not isinstance(channel, dict):
+                continue
+            
+            # Check if this channel's channel_group_id matches our group_id
+            if channel.get('channel_group_id') != group_id:
+                continue
+                
+            channel_streams = channel.get('streams', [])
+            if not isinstance(channel_streams, list):
+                continue
+            
+            matched_channels.append({
+                'channel_number': channel.get('channel_number'),
+                'name': channel.get('name', 'Unknown'),
+                'streams_count': len(channel_streams)
+            })
+        
+        logger.info(f"Filtered to {len(matched_channels)} channels that exactly match group_id={group_id}")
+        
+        # Sort by channel number
+        matched_channels.sort(key=lambda x: x['channel_number'] if x['channel_number'] is not None else 999999)
+        
+        # Generate smart pattern
+        channel_nums = [c['channel_number'] for c in matched_channels if c['channel_number'] is not None]
+        smart_pattern = generate_channel_pattern(channel_nums)
+        
+        logger.info(f"Found {len(matched_channels)} channels with streams from group {group_name}")
+        logger.info(f"Generated pattern: {smart_pattern}")
+        
+        return jsonify({
+            'group_name': group_name,
+            'total_streams': len(stream_ids),
+            'assigned_channels_count': len(matched_channels),
+            'channels': matched_channels,
+            'smart_pattern': smart_pattern
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting group channels: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/dispatcharr/groups/<int:group_id>/create-rule', methods=['POST'])
+def create_rule_from_dispatcharr_group(group_id):
+    """Create a rule from a Dispatcharr group"""
+    try:
+        client = get_dispatcharr_client()
+        
+        if not client:
+            return jsonify({'error': 'Dispatcharr not configured'}), 400
+        
+        # Get enabled groups to find this one
+        enabled_groups = client.get_enabled_groups()
+        target_group = None
+        for g in enabled_groups:
+            if g['id'] == group_id:
+                target_group = g
+                break
+        
+        if not target_group:
+            return jsonify({'error': 'Group not found or not enabled'}), 404
+        
+        group_name = target_group['name']
+        
+        # Try to get actual channel assignments
+        try:
+            # Reuse the channel lookup logic
+            channels_response = get_dispatcharr_group_channels(group_id)
+            channels_data = channels_response.json
+            
+            if channels_data and 'smart_pattern' in channels_data and channels_data['smart_pattern']:
+                # Use the smart pattern from actual channel assignments
+                pattern = channels_data['smart_pattern']
+                logger.info(f"Using smart pattern from channel assignments: {pattern}")
+            else:
+                # Fallback to name-based pattern
+                pattern = group_name
+                logger.info(f"No channel assignments found, using name pattern: {pattern}")
+        except Exception as e:
+            logger.warning(f"Could not get channel assignments: {e}, falling back to name pattern")
+            pattern = group_name
+        
+        # Determine match type based on pattern
+        is_number_pattern = any(char.isdigit() for char in pattern)
+        
+        # Create rule structure
+        rule_data = {
+            'name': group_name,
+            'group': 'Dispatcharr',
+            'patterns': [pattern],
+            'pattern_metadata': {
+                pattern: {
+                    'mode': 'simple',
+                    'type': 'range' if is_number_pattern else 'contains',
+                    'value': pattern,
+                    'caseSensitive': False
+                }
+            },
+            'match_types': ['number'] if is_number_pattern else ['name'],
+            'sort_order': 'none',
+            'enabled': target_group.get('auto_channel_sync', False),
+            'sync_interval_minutes': None,
+            'include_sources': [],
+            'exclude_sources': [],
+            'refresh_sources_before_sync': False,
+            'refresh_epg_before_sync': False,
+            'schedule_enabled': False,
+            'schedule_days': None,
+            'schedule_start_time': None,
+            'schedule_end_time': None,
+            '_dispatcharr_group_id': group_id,
+            '_dispatcharr_group_name': target_group['name']
+        }
+        
+        return jsonify({
+            'success': True,
+            'rule_template': rule_data,
+            'message': f'Rule template created for {target_group["name"]}'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error creating rule from Dispatcharr group: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+def _update_rule_patterns_from_dispatcharr(rule: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Fetch the latest channel numbers for a Dispatcharr-linked rule and update
+    its patterns in rule_manager.
+
+    Returns a dict with 'success', 'message', and optionally 'patterns'.
+    """
+    group_id = rule.get('_dispatcharr_group_id')
+    if not group_id:
+        return {'success': False, 'message': 'Rule has no _dispatcharr_group_id'}
+
+    client = get_dispatcharr_client()
+    if not client:
+        return {'success': False, 'message': 'Dispatcharr not configured or not enabled'}
+
+    if not client._ensure_authenticated():
+        return {'success': False, 'message': 'Dispatcharr authentication failed'}
+
+    try:
+        enabled_groups = client.get_enabled_groups()
+        target_group = next((g for g in enabled_groups if g['id'] == group_id), None)
+        if not target_group:
+            return {'success': False, 'message': f'Dispatcharr group {group_id} not found or not enabled'}
+
+        group_name = target_group['name']
+        is_local_group = target_group.get('m3u_account_count', 0) == 0
+        m3u_account_name = target_group.get('m3u_account_name', '')
+
+        # Fetch channels by group
+        channels_url = f"{client.base_url}/api/channels/channels/"
+        channels_response = requests.get(channels_url, headers=client._get_headers(),
+                                         params={'channel_group_id': group_id}, timeout=30)
+        channels_response.raise_for_status()
+
+        channels_data = channels_response.json()
+        all_channels = channels_data.get('results', []) if isinstance(channels_data, dict) else channels_data
+
+        channel_nums = []
+        for ch in all_channels:
+            if not isinstance(ch, dict):
+                continue
+            if ch.get('channel_group_id') != group_id:
+                continue
+            num = ch.get('channel_number')
+            if num is not None:
+                channel_nums.append(num)
+
+        if not channel_nums:
+            return {'success': False, 'message': f'No channels found in Dispatcharr group "{group_name}"'}
+
+        smart_pattern = generate_channel_pattern(channel_nums)
+        logger.info(f"AutoSync: group '{group_name}' -> pattern '{smart_pattern}'")
+
+        # Update the rule patterns
+        rule_id = rule.get('id')
+        updated_rule = {**rule, 'patterns': [smart_pattern], 'match_types': ['number']}
+        if rule_manager.update_rule(rule_id, updated_rule):
+            return {'success': True, 'message': f'Updated patterns to {smart_pattern}', 'patterns': [smart_pattern]}
+        else:
+            return {'success': False, 'message': 'Failed to save updated rule patterns'}
+
+    except Exception as e:
+        logger.error(f"AutoSync update failed for rule {rule.get('id')}: {e}")
+        return {'success': False, 'message': str(e)}
+
+
+@app.route('/api/rules/<rule_id>/update-from-dispatcharr', methods=['POST'])
+def update_rule_from_dispatcharr(rule_id):
+    """Fetch latest channel numbers from Dispatcharr and update rule patterns"""
+    try:
+        rule = next((r for r in rule_manager.rules if r.get('id') == rule_id), None)
+        if not rule:
+            return jsonify({'error': 'Rule not found'}), 404
+
+        if not rule.get('dispatcharr_autosync'):
+            return jsonify({'error': 'Rule does not have AutoSync enabled'}), 400
+
+        result = _update_rule_patterns_from_dispatcharr(rule)
+
+        if result['success']:
+            return jsonify(result)
+        else:
+            return jsonify({'error': result['message']}), 400
+
+    except Exception as e:
+        logger.error(f"Error in update-from-dispatcharr for rule {rule_id}: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 def scheduled_sync():
     """Scheduled sync job"""
     with app.app_context():
@@ -1084,16 +1798,20 @@ def scheduled_sync():
 def setup_rule_schedulers():
     """Setup individual schedulers for rules with custom sync intervals"""
     scheduler.remove_all_jobs()
-    
+
+    # Use effective sync interval (settings file overrides env var)
+    effective_interval = get_sync_interval()
+
     # Add main global sync job
     scheduler.add_job(
         func=scheduled_sync,
         trigger='interval',
-        minutes=SYNC_INTERVAL,
+        minutes=effective_interval,
         id='global_sync',
         name='Global sync',
         replace_existing=True
     )
+    logger.info(f"Global sync scheduled every {effective_interval} minutes")
     
     # Add per-rule sync jobs for rules with custom intervals
     for rule in rule_manager.rules:
