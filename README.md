@@ -295,7 +295,7 @@ MIT License - see [LICENSE](Documentation/LICENSE) for details.
 
 - 🐛 [Report Issues](https://github.com/CurtisFeatures/channels-dvr-collection-manager/issues)
 - 💬 [Discussions](https://github.com/CurtisFeatures/channels-dvr-collection-manager/discussions)
-- 📧 Email: support@curtisfeatures.com
+
 
 ---
 
