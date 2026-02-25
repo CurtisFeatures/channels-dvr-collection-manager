@@ -2625,6 +2625,11 @@
                 
                 groupRules.forEach(rule => {
                     const collectionName = collectionsCache[rule.collection_slug] || `Collection ${rule.collection_slug}`;
+                    
+                    // Check if this collection is shared with other rules
+                    const rulesForCollection = rules.filter(r => r.collection_slug === rule.collection_slug && r.enabled);
+                    const isShared = rulesForCollection.length > 1;
+                    
                     html += `
                         <div class="rule-card ${!rule.enabled ? 'disabled' : ''}" style="margin-bottom: 12px;">
                             <div class="rule-header">
@@ -2634,9 +2639,11 @@
                                         <span class="toggle-slider"></span>
                                     </label>
                                     <div class="rule-title">${rule.name}</div>
-                                    ${rule.dispatcharr_autosync ? '<span class="dispatcharr-auto-sync-badge" title="Patterns are automatically updated from Dispatcharr before each sync">🔄 AutoSync</span>' : ''}
+                                    ${rule.dispatcharr_autosync ? '<span class="dispatcharr-auto-sync-badge" title="Patterns are automatically updated from Dispatcharr before each sync">🔄 Dispatcharr Sync</span>' : ''}
+                                    ${isShared ? `<span class="shared-collection-badge" title="${rulesForCollection.length} rules share this collection - Channels are ADDED only, never removed" style="background: #fbbf24; color: #78350f; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">⚠️ Shared (${rulesForCollection.length})</span>` : ''}
                                 </div>
                                 <div class="rule-actions">
+                                    ${isShared ? `<button class="btn" style="background: #f59e0b; color: white;" onclick="showMergeRulesModal('${rule.collection_slug}')" title="Merge all ${rulesForCollection.length} rules into one">🔀 Merge Rules</button>` : ''}
                                     <button class="btn btn-secondary" onclick="previewRuleById('${rule.id}')">👁️ Preview</button>
                                     <button class="btn btn-secondary" onclick="cloneRule('${rule.id}')">📋 Clone</button>
                                     <button class="btn" onclick="editRule('${rule.id}')">Edit</button>
@@ -2647,6 +2654,7 @@
                                 <div class="rule-info-item">
                                     <span class="rule-info-label">Collection:</span>
                                     ${collectionName}
+                                    ${isShared ? '<span style="color: #f59e0b; font-size: 12px; margin-left: 8px;">(Additive Mode)</span>' : ''}
                                 </div>
                                 <div class="rule-info-item">
                                     <span class="rule-info-label">Sort:</span>
@@ -3951,7 +3959,7 @@
                         <span>${group.name}</span>
                         ${group.has_autosync_rule ? `
                             <span style="margin-left: auto; background: rgba(16, 185, 129, 0.2); color: #10b981; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">
-                                🔄 AutoSync
+                                🔄 Dispatcharr Sync
                             </span>
                         ` : ''}
                     </div>
@@ -3966,8 +3974,8 @@
                         </div>
                         ${group.auto_channel_sync ? `
                             <div class="dispatcharr-group-info">
-                                <span class="icon">🔄</span>
-                                <span class="dispatcharr-auto-sync-badge">Auto Sync</span>
+                                <span class="icon">⊕</span>
+                                <span class="dispatcharr-auto-sync-badge">Auto Channel Creation</span>
                             </div>
                         ` : ''}
                         ${group.channel_pattern ? `
@@ -4283,6 +4291,79 @@
             }
         }
 
+        async function showMergeRulesModal(collectionSlug) {
+            try {
+                const response = await fetch('/api/rules');
+                const allRules = await response.json();
+                
+                // Find all rules for this collection
+                const rulesForCollection = allRules.filter(r => r.collection_slug === collectionSlug);
+                
+                if (rulesForCollection.length < 2) {
+                    showAlert('No rules to merge', 'info');
+                    return;
+                }
+                
+                const collectionName = collectionsCache[collectionSlug] || collectionSlug;
+                
+                const confirmed = confirm(
+                    `Merge ${rulesForCollection.length} rules into one?\n\n` +
+                    `Collection: ${collectionName}\n\n` +
+                    `Rules to merge:\n` +
+                    rulesForCollection.map((r, i) => `${i + 1}. ${r.name}`).join('\n') + '\n\n' +
+                    `This will:\n` +
+                    `• Combine all patterns into a single rule\n` +
+                    `• Keep the first rule's name and settings\n` +
+                    `• Delete the other ${rulesForCollection.length - 1} rule(s)\n` +
+                    `• Switch to normal mode (remove channels that don't match)\n\n` +
+                    `Continue?`
+                );
+                
+                if (!confirmed) return;
+                
+                // Merge logic: combine all patterns
+                const mergedRule = {
+                    ...rulesForCollection[0],  // Use first rule as base
+                    patterns: [],
+                    pattern_metadata: {}
+                };
+                
+                // Collect all unique patterns
+                const allPatterns = new Set();
+                rulesForCollection.forEach(rule => {
+                    rule.patterns.forEach(p => allPatterns.add(p));
+                    // Merge pattern metadata
+                    Object.assign(mergedRule.pattern_metadata, rule.pattern_metadata || {});
+                });
+                
+                mergedRule.patterns = Array.from(allPatterns);
+                mergedRule.name = mergedRule.name + ' (Merged)';
+                
+                // Save merged rule
+                const saveResponse = await fetch('/api/rules', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(mergedRule)
+                });
+                
+                if (!saveResponse.ok) {
+                    throw new Error('Failed to save merged rule');
+                }
+                
+                // Delete old rules
+                for (const rule of rulesForCollection) {
+                    await fetch(`/api/rules/${rule.id}`, { method: 'DELETE' });
+                }
+                
+                showAlert(`✓ Merged ${rulesForCollection.length} rules into "${mergedRule.name}"`, 'success');
+                loadRules();
+                
+            } catch (error) {
+                console.error('Error merging rules:', error);
+                showAlert(`Error: ${error.message}`, 'error');
+            }
+        }
+        
         async function cloneRule(ruleId) {
             try {
                 const response = await fetch('/api/rules');

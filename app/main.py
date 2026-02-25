@@ -567,28 +567,69 @@ class SyncManager:
             old_channels = set(collection.get('items', []))
             new_channels = set(channel_ids)
             
-            # Apply sorting
-            sort_order = rule.get('sort_order', 'none')
-            if sort_order != 'none':
-                channel_map = {ch.get('ID'): ch for ch in matching_channels}
-                sorted_ids = self._sort_channels(list(new_channels), channel_map, sort_order)
-                collection['items'] = sorted_ids
-            else:
-                collection['items'] = sorted(list(new_channels))
+            # Check if multiple rules target this collection
+            rules_for_collection = [r for r in self.rule_manager.rules 
+                                   if r.get('collection_slug') == collection_slug 
+                                   and r.get('enabled', False)]
             
-            if self.api.update_collection(collection_slug, collection):
-                added = new_channels - old_channels
-                removed = old_channels - new_channels
-                logger.info(f"✓ Rule sync complete: {len(new_channels)} channels (+{len(added)}, -{len(removed)})")
-                return {
-                    'success': True,
-                    'collection': collection.get('name'),
-                    'total': len(new_channels),
-                    'added': len(added),
-                    'removed': len(removed)
-                }
+            is_shared_collection = len(rules_for_collection) > 1
+            
+            if is_shared_collection:
+                # ADDITIVE MODE: Merge with existing channels, don't remove
+                logger.info(f"⚠️ Shared collection detected! {len(rules_for_collection)} rules target '{collection.get('name')}' - using additive mode")
+                
+                # Combine old and new channels (union)
+                combined_channels = old_channels | new_channels
+                
+                # Apply sorting to combined set
+                sort_order = rule.get('sort_order', 'none')
+                if sort_order != 'none':
+                    # Get channel details for all combined channels
+                    all_channel_map = {ch.get('ID'): ch for ch in all_channels}
+                    combined_channel_details = [all_channel_map.get(cid) for cid in combined_channels if all_channel_map.get(cid)]
+                    channel_map = {ch.get('ID'): ch for ch in combined_channel_details}
+                    sorted_ids = self._sort_channels(list(combined_channels), channel_map, sort_order)
+                    collection['items'] = sorted_ids
+                else:
+                    collection['items'] = sorted(list(combined_channels))
+                
+                if self.api.update_collection(collection_slug, collection):
+                    added = new_channels - old_channels
+                    logger.info(f"✓ Rule sync complete (ADDITIVE): {len(combined_channels)} total channels (+{len(added)}, -0 [shared collection])")
+                    return {
+                        'success': True,
+                        'collection': collection.get('name'),
+                        'total': len(combined_channels),
+                        'added': len(added),
+                        'removed': 0,
+                        'shared_collection': True,
+                        'rules_count': len(rules_for_collection)
+                    }
             else:
-                return {'error': 'Failed to update collection'}
+                # NORMAL MODE: Replace channels (add and remove)
+                # Apply sorting
+                sort_order = rule.get('sort_order', 'none')
+                if sort_order != 'none':
+                    channel_map = {ch.get('ID'): ch for ch in matching_channels}
+                    sorted_ids = self._sort_channels(list(new_channels), channel_map, sort_order)
+                    collection['items'] = sorted_ids
+                else:
+                    collection['items'] = sorted(list(new_channels))
+                
+                if self.api.update_collection(collection_slug, collection):
+                    added = new_channels - old_channels
+                    removed = old_channels - new_channels
+                    logger.info(f"✓ Rule sync complete: {len(new_channels)} channels (+{len(added)}, -{len(removed)})")
+                    return {
+                        'success': True,
+                        'collection': collection.get('name'),
+                        'total': len(new_channels),
+                        'added': len(added),
+                        'removed': len(removed),
+                        'shared_collection': False
+                    }
+                else:
+                    return {'error': 'Failed to update collection'}
         except Exception as e:
             logger.error(f"Error syncing rule {rule_id}: {e}")
             return {'error': str(e)}

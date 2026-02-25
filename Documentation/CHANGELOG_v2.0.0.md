@@ -329,6 +329,20 @@ All notable changes to Channels DVR Collection Manager will be documented in thi
 
 ### 📝 Documentation Updates
 
+#### New Guides
+- **Dispatcharr Integration** - Full setup and usage guide
+  - Connection configuration
+  - Group browsing
+  - Rule creation workflow
+  - Auto-sync setup
+- **Collection Creation** - Dynamic collection guide
+  - Regex transform examples
+  - Common use cases
+  - Get-or-create logic
+- **Shared Collections** - Managing multiple rules
+  - Additive mode explanation
+  - When to merge rules
+  - Best practices
 
 #### Updated Docs
 - **README** - v2.0 feature highlights
@@ -360,7 +374,7 @@ All notable changes to Channels DVR Collection Manager will be documented in thi
 
 ## [1.2.0] - 2026-02-23
 
-See [CHANGELOG_v1_2_0.md](Documentation/CHANGELOG_v1_2_0.md) for v1.2.0 changes.
+See [CHANGELOG_v1_2_0.md](CHANGELOG_v1_2_0.md) for v1.2.0 changes.
 
 ---
 
