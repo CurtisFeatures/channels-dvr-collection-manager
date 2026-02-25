@@ -1,9 +1,10 @@
-# Channels DVR Collection Manager
 <img src="static/logo.png" width="30%">
 
-A powerful web-based tool for automatically managing channel collections in Channels DVR based on flexible pattern matching rules.
+# Channels DVR Collection Manager
 
-![Version](https://img.shields.io/badge/version-1.2.0-blue)
+A powerful web-based tool for automatically managing channel collections in Channels DVR based on flexible pattern matching rules with Dispatcharr IPTV integration.
+
+![Version](https://img.shields.io/badge/version-2.0.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Docker](https://img.shields.io/badge/docker-ready-brightgreen)
 
@@ -11,20 +12,62 @@ A powerful web-based tool for automatically managing channel collections in Chan
 [![GitHub Stars](https://img.shields.io/github/stars/CurtisFeatures/channels-dvr-collection-manager)](https://github.com/CurtisFeatures/channels-dvr-collection-manager)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## 🎯 What's New in v1.2.0
+## 🎯 What's New in v2.0.0
 
-### Major Features
-- **📥📤 Import/Export** - Share rules between installations with duplicate detection
-- **📁 Groups/Folders** - Organize rules with collapsible sections
-- **🔍 Search & Filter** - Find rules instantly with real-time search
-- **🕐 Advanced Scheduling** - Time-based rule activation with day/time windows
-- **⚡ Quick Toggle** - Enable/disable rules without opening editor
-- **📑 Rule Templates** - Save and reuse pattern configurations
-- **✏️ Smart Pattern Editing** - Edit builder-created patterns visually
+### 🚀 Major Features
 
-See [Documentation/CHANGELOG.md](Documentation/CHANGELOG.md) for complete details.
+**Dispatcharr Integration**
+- **📡 Connect to Dispatcharr** - Seamless IPTV management integration
+- **🔄 Dispatcharr Sync** - Auto-update channel patterns from Dispatcharr groups
+- **⊕ Auto Channel Creation** - Detect and use Dispatcharr's built-in sync
+- **📥 One-Click Rules** - Create rules directly from Dispatcharr groups
+- **🌍 Provider & Local Groups** - Support for both M3U providers and local channels
+
+**Collection Management**
+- **➕ Create Collections** - Build new collections on-the-fly with regex transforms
+- **🔀 Merge Rules** - Combine multiple rules targeting the same collection
+- **⚠️ Shared Collection Protection** - Additive mode prevents rules from fighting
+- **🎨 Collection Regex Builder** - Transform names with common patterns
+
+**Performance & Reliability**
+- **🔒 Exact Number Matching** - Pattern "400" won't match "6400" anymore
+- **📊 Smart Filtering** - Server-side filtering for instant results
+- **🎯 On-Demand Loading** - Fetch channel data only when needed
+
+See [CHANGELOG.md](Documentation/CHANGELOG.md) for complete v2.0 details
 
 ## ✨ Features
+
+### Dispatcharr Integration (NEW in v2.0)
+- **Dispatcharr Connection** - Connect to your Dispatcharr IPTV server
+  - JWT authentication with token refresh
+  - Test connection before saving
+  - Secure password storage
+- **Browse Groups** - View all enabled Dispatcharr channel groups
+  - See channel counts and provider info
+  - Filter by provider or local groups
+  - Auto Sync detection and badges
+- **Quick Rule Creation** - One-click rule generation
+  - Auto-populates group name and patterns
+  - Smart channel number pattern detection
+  - Supports ranges (101-104,107-108)
+- **Dispatcharr Sync Rules** - Auto-update patterns from Dispatcharr
+  - Patterns refresh before each sync
+  - Always uses latest channel assignments
+  - Perfect for dynamic IPTV lineups
+- **Collection Creation** - Create collections on-the-fly
+  - Name transform with regex (remove prefixes, suffixes, etc.)
+  - Auto-detect existing collections
+  - Visual preview of transformed names
+
+### Shared Collection Management (NEW in v2.0)
+- **Automatic Detection** - Detects when multiple rules target one collection
+- **Additive Mode** - Channels are added, never removed from shared collections
+- **Visual Indicators** - ⚠️ Shared (N) badges show shared collections
+- **Merge Rules** - Combine multiple rules into one
+  - One-click merge with confirmation
+  - Combines all patterns
+  - Switches to normal mode after merge
 
 ### Organization & Management
 - **Import/Export Rules** - Backup and share your rule configurations
@@ -59,6 +102,7 @@ See [Documentation/CHANGELOG.md](Documentation/CHANGELOG.md) for complete detail
   - Live preview showing matching channels
   - Smart pattern editing - Edit builder patterns visually
 - **Multiple Match Types** - Match on channel name, number, or EPG data
+- **Exact Number Matching** - Word boundary matching prevents false positives
 - **Source Filtering** - Include or exclude specific sources
 - **Smart Sorting** - Multiple options including "Events Last" for sports
 - **Per-Rule Sync** - Custom intervals for each rule
@@ -70,6 +114,7 @@ See [Documentation/CHANGELOG.md](Documentation/CHANGELOG.md) for complete detail
 - **Live Preview** - Test patterns before saving
 - **ESC Key Support** - Close modals quickly
 - **Scrollable Results** - View all matches, not just first few
+- **Unified Button Alignment** - Consistent card layouts
 
 ## 🚀 Quick Start
 
@@ -77,17 +122,22 @@ See [Documentation/CHANGELOG.md](Documentation/CHANGELOG.md) for complete detail
 
 1. Create `docker-compose.yml`:
 ```yaml
+version: '3.8'
+
 services:
   channels-collection-manager:
     image: curtisfeatures/channels-dvr-collection-manager:latest
     container_name: channels-collection-manager
     ports:
       - "5000:5000"
-    environment:
-      - DVR_URL=http://your-channels-dvr:8089
-      - SYNC_INTERVAL_MINUTES=60
     volumes:
       - ./config:/config
+    environment:
+      - DVR_URL=http://your-dvr-ip:8089
+      # Optional: Connect to Dispatcharr
+      - DISPATCHARR_URL=http://your-dispatcharr-ip:9191
+      - DISPATCHARR_USERNAME=your-username
+      - DISPATCHARR_PASSWORD=your-password
     restart: unless-stopped
 ```
 
@@ -96,312 +146,157 @@ services:
 docker-compose up -d
 ```
 
-3. Open web interface:
-```
-http://localhost:5000
-```
+3. Access the web UI at `http://localhost:5000`
 
-## 📖 Usage
+### Configuration
 
-### Creating Your First Rule
+**Required:**
+- `DVR_URL` - Your Channels DVR server URL (e.g., `http://192.168.1.100:8089`)
 
-1. **Click "+ Add Rule"**
+**Optional (Dispatcharr Integration):**
+- `DISPATCHARR_URL` - Your Dispatcharr server URL (e.g., `http://192.168.1.101:9191`)
+- `DISPATCHARR_USERNAME` - Dispatcharr username
+- `DISPATCHARR_PASSWORD` - Dispatcharr password
 
-2. **Basic Settings:**
-   - **Name**: e.g., "DAZN Sports Channels"
-   - **Group** (Optional): e.g., "Sports" - organizes rules into folders
-   - **Collection**: Select from your Channels DVR collections
-   - **Match Types**: Channel Name, Number, or EPG
+You can also configure Dispatcharr from the web UI Settings page.
 
-3. **Build Patterns** - Choose your method:
+## 📖 Documentation
 
-   **Option A: Pattern Builder** (Recommended)
-   - Click "Show Builder"
-   - **Simple Mode**: Select pattern type and enter text
-   - **Advanced Mode**: Combine multiple conditions
-   - Click "Test Pattern" to see matches
-   - Click "Add This Pattern"
-   - **💾 Save as Template** to reuse later!
+- **[Quick Start Guide](Documentation/QUICKSTART.md)** - Get up and running in 5 minutes
+- **[First Rule Guide](Documentation/FIRST_RULE_GUIDE.md)** - Create your first rule step-by-step
+- **[Advanced Features](Documentation/ADVANCED_FEATURES.md)** - Pattern builder, scheduling, templates
+- **[Changelog v2.0](Documentation/CHANGELOG.md)** - All v2.0 changes
+- **[Contributing](Documentation/CONTRIBUTING.md)** - How to contribute
 
-   **Option B: Use a Template**
-   - Click "📑 Templates" in header
-   - Browse saved templates
-   - Click "Use Template"
-   - Pattern auto-fills!
+## 🎬 Common Use Cases
 
-   **Option C: Copy from Another Rule**
-   - Expand "📋 Copy Patterns from Another Rule"
-   - Select source rule
-   - Choose patterns to copy
-   - Click "Copy Selected Patterns"
-
-   **Option D: Manual Entry** (For regex experts)
-   - Enter pattern directly
-   - Click "Test" to preview
-   - Click "Add"
-
-4. **Configure Options:**
-   - **Sort Order**: Choose how channels are sorted
-   - **Source Filters**: Include/exclude specific sources
-   - **Sync Interval**: Per-rule override (optional)
-   - **Refresh Options**:
-     - ☐ Refresh Sources Before Each Sync
-     - ☐ Refresh EPG Before Each Sync
-   - **Schedule** (Optional):
-     - ☑ Enable scheduling
-     - Select days of week
-     - Set time window (e.g., 9:00 AM - 5:00 PM)
-
-5. **Preview**: Click "Preview" to see complete results
-
-6. **Save**: Rule syncs immediately and on schedule
-
-### Managing Rules
-
-**Quick Enable/Disable:**
-- Click the toggle switch next to rule name
-- No need to open editor!
-
-**Edit Pattern:**
-- Click "Edit" on any pattern
-- If created with builder, it opens in builder for visual editing
-- If manual regex, opens text prompt
-
-**Clone Rule:**
-- Click "📋 Clone" button
-- Creates duplicate with " (Copy)" suffix
-- Modify and save as new rule
-
-**Organize with Groups:**
-- Rules automatically group by folder name
-- Click folder header to expand/collapse
-- Groups remember their state
-
-**Search & Filter:**
-- Use search box to find rules by name, pattern, or collection
-- Use group dropdown to show only specific groups
-- Combine search + filter for precise results
-
-### Import/Export
-
-**Export Rules:**
-1. Click "📤 Export" button
-2. File downloads: `channels-rules-YYYY-MM-DD.json`
-3. Contains all rules with metadata
-
-**Import Rules:**
-1. Click "📥 Import" button
-2. Select exported JSON file
-3. Preview shows rule count and any duplicates
-4. Choose mode:
-   - **Merge** (recommended): Adds to existing rules
-   - **Replace**: Deletes all, imports new
-5. Confirm and import
-
-**Duplicate Detection:**
-- Warns if identical rules exist (name + collection + patterns)
-- Shows which rules are duplicates
-- You can still proceed if intentional
-
-## 🔧 Advanced Features
-
-### Scheduling Examples
-
-**Business Hours Only:**
-```
-Days: Mon, Tue, Wed, Thu, Fri
-Time: 09:00 - 17:00
-Use: Sync business news only during work hours
+### IPTV Provider Management
+```yaml
+# Use Dispatcharr integration to:
+1. Browse all provider channel groups
+2. Create rules from groups with one click
+3. Auto-update patterns when channels change
+4. Manage multiple providers separately
 ```
 
-**Weekend Sports:**
-```
-Days: Sat, Sun
-Time: 08:00 - 23:00
-Use: Activate sports channels on game days
-```
-
-**Overnight IPTV Refresh:**
-```
-Days: (all days)
-Time: 02:00 - 05:00
-Use: Heavy refresh during low traffic
+### Sports Collections
+```yaml
+# Pattern: NBA|Lakers|Clippers|Basketball
+# Match Type: Name
+# Sorting: Events Last (keeps live games at top)
+# Schedule: Mon-Sun, 12:00 PM - 11:00 PM (game hours)
 ```
 
-**Midnight Crossing:**
-```
-Days: (any)
-Time: 22:00 - 06:00
-Use: Overnight time windows work correctly
-```
-
-### Template Workflow
-
-**Create Template:**
-1. Build perfect pattern with builder
-2. Click "💾 Save as Template"
-3. Name: "DAZN Sports Pattern"
-4. Description: "All DAZN excluding football"
-5. Template saved!
-
-**Use Template:**
-1. Click "📑 Templates"
-2. Find template
-3. Click "Use Template"
-4. Pattern + settings auto-fill
-5. Just add rule name and collection
-
-**Share Templates:**
-- Export rules containing templates
-- Share JSON file with others
-- They import and get your templates!
-
-### Pattern Examples
-
-**Simple Patterns:**
-```
-Sport                    # Contains "Sport"
-^ESPN                    # Starts with "ESPN"
-HD$                      # Ends with "HD"
-^ESPN HD$                # Exact match "ESPN HD"
-ESPN|FOX|NBC             # Any of these (OR)
-^(?!.*Kids).*$           # Does NOT contain "Kids"
-100-200                  # Channel range
+### News by Network
+```yaml
+# Pattern: ^(CNN|MSNBC|Fox News)
+# Match Type: Name
+# Auto-refresh: Yes (updates when EPG refreshes)
 ```
 
-**Advanced Combinations:**
-```
-^(?!.*football)(?=.*DAZN).*$
-# Contains "DAZN" AND Does NOT contain "football"
-
-^(?=.*(Sport|ESPN))Sky.*$
-# Contains "Sport" OR "ESPN" AND Starts with "Sky"
+### Channel Number Ranges
+```yaml
+# Pattern: 100-199
+# Match Type: Number
+# Result: Channels 100-199 (exactly, won't match 1001)
 ```
 
-## 🔌 API
+### Shared Collection Example
+```yaml
+# Multiple rules → One collection
+Rule 1: NBA → Sports Collection
+Rule 2: NFL → Sports Collection  
+Rule 3: Soccer → Sports Collection
 
-REST API for programmatic access:
-
-### Endpoints
-
-```
-GET    /api/rules          # List all rules
-POST   /api/rules          # Create rule
-PUT    /api/rules/{id}     # Update rule
-DELETE /api/rules/{id}     # Delete rule
-POST   /api/preview        # Preview matches
-GET    /api/status         # Sync status
-GET    /api/export         # Export rules
-POST   /api/import         # Import rules
-GET    /api/groups         # List groups
-GET    /api/templates      # List templates
-POST   /api/templates      # Save template
-DELETE /api/templates/{id} # Delete template
+Result: All channels combined (additive mode)
+Option: Merge into single rule with all patterns
 ```
 
-## ⚙️ Configuration
+## 🔧 Advanced Usage
 
-### Environment Variables
+### Dispatcharr Workflow
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `DVR_URL` | `http://channelsdvr:8089` | Channels DVR server URL |
-| `SYNC_INTERVAL_MINUTES` | `60` | Global sync interval |
+1. **Connect Dispatcharr**
+   - Settings → Dispatcharr Configuration
+   - Enter URL, username, password
+   - Test connection
 
-### Rule Structure
+2. **Browse Groups**
+   - Click "📡 Dispatcharr" tab
+   - View all enabled groups
+   - Filter by provider or local
 
-```json
-{
-  "id": "unique-id",
-  "name": "Rule Name",
-  "group": "Sports",
-  "collection_slug": "collection-slug",
-  "patterns": ["pattern1", "pattern2"],
-  "pattern_metadata": {
-    "pattern1": {
-      "mode": "simple",
-      "type": "contains",
-      "value": "ESPN"
-    }
-  },
-  "match_types": ["name", "number"],
-  "sort_order": "events_last",
-  "include_sources": ["source-id"],
-  "exclude_sources": ["source-id"],
-  "sync_interval_minutes": 15,
-  "refresh_sources_before_sync": true,
-  "refresh_epg_before_sync": false,
-  "enabled": true,
-  "schedule_enabled": false,
-  "schedule_days": ["monday", "wednesday", "friday"],
-  "schedule_start_time": "09:00",
-  "schedule_end_time": "17:00"
-}
-```
+3. **Create Rule**
+   - Click "➕ Create Rule" on any group
+   - Review auto-generated pattern
+   - Select or create collection
+   - Enable Dispatcharr Sync for auto-updates
+
+4. **Manage Collections**
+   - Create new collections with regex transforms
+   - Example: "UK| DOCUMENTARY ᴴᴰ" → "DOCUMENTARY"
+   - System checks if collection exists
+
+### Rule Merging
+
+When you have multiple rules targeting the same collection:
+
+1. System automatically uses **Additive Mode**
+   - Channels are added
+   - Channels are never removed
+   - Prevents rules from fighting
+
+2. Click **🔀 Merge Rules** to combine them
+   - Combines all patterns into one rule
+   - Deletes duplicate rules
+   - Returns to normal mode
 
 ## 🐛 Troubleshooting
 
-### Common Issues
+### Dispatcharr Connection Issues
+- Verify URL includes `http://` and port (`:9191`)
+- Check username and password are correct
+- Ensure Dispatcharr is running and accessible
+- Check Docker network if using containers
 
-**Rules not syncing:**
-- Verify `DVR_URL` is correct and accessible
-- Check collections exist in Channels DVR
-- View logs: `docker logs channels-collection-manager`
-- Check if rule is scheduled and within time window
+### Collections Not Updating
+- Check rule is enabled (toggle switch)
+- Verify collection exists in Channels DVR
+- Check sync logs for errors
+- For shared collections, check additive mode is active
 
-**Patterns not matching:**
-- Use Pattern Builder's live preview
-- Test with "Test Pattern" button
-- Verify match types are selected
-- Check case sensitivity settings
+### Pattern Not Matching
+- Use Preview to test patterns
+- For numbers, ensure exact match (400 won't match 6400)
+- Check match type (Name vs Number)
+- Verify regex syntax is correct
 
-**Import failing:**
-- Verify JSON file is valid export format
-- Check for file corruption
-- Try merge mode instead of replace
+## 📦 Data Storage
 
-**Schedule not working:**
-- Verify days are selected
-- Check time format is HH:MM
-- Look for "skipped" messages in logs
+All configuration is stored in `/config`:
+- `rules.json` - Your rule definitions
+- `dispatcharr.json` - Dispatcharr connection settings (tokens cached)
 
-## 📚 Documentation
+## 🤝 Contributing
 
-- [Quick Start Guide](Documentation/QUICKSTART.md)
-- [First Rule Guide](Documentation/FIRST_RULE_GUIDE.md)
-- [Advanced Features](Documentation/ADVANCED_FEATURES.md)
-- [Changelog](Documentation/CHANGELOG.md)
-
-## 🤝 Support
-
-- **Documentation**: [GitHub](https://github.com/CurtisFeatures/channels-dvr-collection-manager)
-- **Issues**: [GitHub Issues](https://github.com/CurtisFeatures/channels-dvr-collection-manager/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/CurtisFeatures/channels-dvr-collection-manager/discussions)
-
-## 🙏 Contributing
-
-Contributions welcome! See [Documentation/CONTRIBUTING.md](Documentation/CONTRIBUTING.md) for guidelines.
+<!-- Contributions are welcome! See [CONTRIBUTING.md](Documentation/CONTRIBUTING.md) for guidelines. -->
 
 ## 📄 License
 
-MIT License - see [LICENSE](LICENSE) file for details.
+MIT License - see [LICENSE](Documentation/LICENSE) for details.
 
-## 🌟 Acknowledgments
+## 🙏 Acknowledgments
 
 - Built for [Channels DVR](https://getchannels.com/)
-- Inspired by the Channels DVR community
+- Integrates with [Dispatcharr](https://github.com/Dispatcharr/Dispatcharr) IPTV management
+- Community feedback and feature requests
 
-## Screenshots
-<img src="https://github.com/CurtisFeatures/channels-dvr-collection-manager/blob/main/img/Main%20Screen.png" width="80%">
-<img src="https://github.com/CurtisFeatures/channels-dvr-collection-manager/blob/main/img/Main%20Preview.png" width="80%">
-<img src="https://github.com/CurtisFeatures/channels-dvr-collection-manager/blob/main/img/Existing%20Collections.png" width="80%">
-<img src="https://github.com/CurtisFeatures/channels-dvr-collection-manager/blob/main/img/Rule%20Edit1.png" width="80%">
-<img src="https://github.com/CurtisFeatures/channels-dvr-collection-manager/blob/main/img/Rule%20Edit2.png" width="80%">
-<img src="https://github.com/CurtisFeatures/channels-dvr-collection-manager/blob/main/img/Pattern%20Builder%20Simple.png" width="80%">
-<img src="https://github.com/CurtisFeatures/channels-dvr-collection-manager/blob/main/img/Pattern%20Builder%20Advanced.png" width="80%">
-<img src="https://github.com/CurtisFeatures/channels-dvr-collection-manager/blob/main/img/Pattern%20Manual.png" width="80%">
-<img src="https://github.com/CurtisFeatures/channels-dvr-collection-manager/blob/main/img/Sort.png" width="80%">
-<img src="https://github.com/CurtisFeatures/channels-dvr-collection-manager/blob/main/img/Preview%20No%20Sort.png" width="80%">
-<img src="https://github.com/CurtisFeatures/channels-dvr-collection-manager/blob/main/img/Preview%20with%20Sort.png" width="80%">
-<img src="https://github.com/CurtisFeatures/channels-dvr-collection-manager/blob/main/img/Existing%20Collections.png" width="80%">
-<img src="https://github.com/CurtisFeatures/channels-dvr-collection-manager/blob/main/img/Sync%20Results.png" width="80%">
+## 📞 Support
+
+- 🐛 [Report Issues](https://github.com/CurtisFeatures/channels-dvr-collection-manager/issues)
+- 💬 [Discussions](https://github.com/CurtisFeatures/channels-dvr-collection-manager/discussions)
+- 📧 Email: support@curtisfeatures.com
+
+---
+
+**Made with ❤️ for the Channels DVR community**
