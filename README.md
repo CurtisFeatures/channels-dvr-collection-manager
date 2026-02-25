@@ -134,7 +134,7 @@ services:
       - ./config:/config
     environment:
       - DVR_URL=http://your-dvr-ip:8089
-      # Optional: Connect to Dispatcharr
+      # Optional: Connect to Dispatcharr This can be entered within the GUIs application settings
       - DISPATCHARR_URL=http://your-dispatcharr-ip:9191
       - DISPATCHARR_USERNAME=your-username
       - DISPATCHARR_PASSWORD=your-password
@@ -153,7 +153,7 @@ docker-compose up -d
 **Required:**
 - `DVR_URL` - Your Channels DVR server URL (e.g., `http://192.168.1.100:8089`)
 
-**Optional (Dispatcharr Integration):**
+**Optional (Dispatcharr Integration) - This can be entered within the GUIs application settings:**
 - `DISPATCHARR_URL` - Your Dispatcharr server URL (e.g., `http://192.168.1.101:9191`)
 - `DISPATCHARR_USERNAME` - Dispatcharr username
 - `DISPATCHARR_PASSWORD` - Dispatcharr password
