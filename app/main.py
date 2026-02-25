@@ -239,10 +239,29 @@ class RuleManager:
         patterns = rule.get('patterns', [])
         match_types = rule.get('match_types', ['name'])
         
+        # Expand comma-separated patterns (e.g., "101-105,107-108" -> ["101-105", "107-108"])
+        expanded_patterns = []
         for pattern in patterns:
+            if ',' in pattern and 'number' in match_types:
+                # Split comma-separated patterns for number matching
+                expanded_patterns.extend([p.strip() for p in pattern.split(',')])
+            else:
+                expanded_patterns.append(pattern)
+        
+        for pattern in expanded_patterns:
             try:
+                # Check if pattern is a single number (e.g., "115")
+                if pattern.replace('.', '').isdigit() and 'number' in match_types:
+                    channel_num = channel.get('GuideNumber', '')
+                    if channel_num:
+                        try:
+                            if float(channel_num) == float(pattern):
+                                return True
+                        except ValueError:
+                            pass
+                
                 # Check if pattern is a channel number range (e.g., "100-200")
-                if '-' in pattern and pattern.replace('-', '').replace('.', '').isdigit():
+                elif '-' in pattern and pattern.replace('-', '').replace('.', '').isdigit():
                     # This is a number range
                     parts = pattern.split('-')
                     if len(parts) == 2:
