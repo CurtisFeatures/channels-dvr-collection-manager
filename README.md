@@ -4,13 +4,18 @@
 
 A powerful web-based tool for automatically managing channel collections in Channels DVR based on flexible pattern matching rules with Dispatcharr IPTV integration.
 
-![Version](https://img.shields.io/badge/version-2.0.0-blue)
+![Version](https://img.shields.io/badge/version-2.2.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Docker](https://img.shields.io/badge/docker-ready-brightgreen)
 
 [![Docker Pulls](https://img.shields.io/docker/pulls/curtisfeatures/channels-dvr-collection-manager)](https://hub.docker.com/r/curtisfeatures/channels-dvr-collection-manager)
 [![GitHub Stars](https://img.shields.io/github/stars/CurtisFeatures/channels-dvr-collection-manager)](https://github.com/CurtisFeatures/channels-dvr-collection-manager)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+## 🎯 What's New in v2.2.0
+
+- **Smarter "Events Last" sorting** - channels showing a named event (`Crystal Palace v Chelsea @ Oct 25 11:45 AM :Sky Sports UK 04`) go first; generic placeholders (`:Sky Sports UK 48`, `Event 12`, `PPV 03`, `No Event Scheduled`) go after, each part in channel-number order.
+- **Curato Command Center endpoint** - `/api/curato/rule` lets Curato's *New channel group* wizard create the collection, add or update a number-range rule and sync it in one call (see *Curato Command Center endpoint* below).
 
 ## 🎯 What's New in v2.0.0
 
@@ -236,6 +241,22 @@ Option: Merge into single rule with all patterns
    - Create new collections with regex transforms
    - Example: "UK| DOCUMENTARY ᴴᴰ" → "DOCUMENTARY"
    - System checks if collection exists
+
+### Curato Command Center endpoint
+
+Curato Command Center's *New channel group* wizard sets up a rule in one call:
+
+- `POST /api/curato/rule` with `{key, name, collection_name, ranges: ["1000-1049"], source_ids: ["M3U-Name"], sort_order, sync_interval_minutes, group, sync}` makes the collection if needed, adds or updates the rule (found again by `key`), then syncs it if `sync` is true.
+- `GET /api/curato/rule?key=...` returns the rule and how many channels its collection has.
+- `DELETE /api/curato/rule?key=...[&delete_collection=1]` removes the rule. The collection is only deleted when this endpoint made it and no other rule uses it.
+
+### "Events Last" sort order
+
+Channels with a named event go first, generic placeholder channels go after, each part in channel-number order.
+A channel counts as generic when its name has no description before the channel label (`:Sky Sports UK 48`),
+is only words and a number (`Event 12`, `PPV 03`, `DAZN UK - 50`, `Paramount+ 50 :`), or says there's nothing on
+(`No Event Scheduled`, `Off Air`, `TBA`). Anything with an `@`, `v`/`vs`, a time or a date is named
+(`Crystal Palace v Chelsea @ Oct 25 11:45 AM :Sky Sports UK 04`).
 
 ### Rule Merging
 

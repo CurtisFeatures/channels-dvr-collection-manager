@@ -2,6 +2,15 @@
 
 All notable changes to Channels DVR Collection Manager will be documented in this file.
 
+## [2.2.0] - 2026-11-12
+
+### Added
+- `GET`/`POST`/`DELETE /api/curato/rule` for Curato Command Center's *New channel group* wizard: gets or creates the collection by name, adds or updates a number-range rule limited to chosen sources (found again by a `key`), sets the sort order and sync interval, and syncs it. Delete removes the rule, and the collection only if this endpoint created it and no other rule uses it.
+
+### Changed
+- "Events Last" sort: a channel counts as generic when it has no description before the channel label (`:Sky Sports UK 48`), is only words and a number (`Event 12`, `PPV 03`, `DAZN UK - 50`, `Paramount+ 50 :`) or says nothing is on (`No Event Scheduled`, `Off Air`, `TBA`). Anything with `@`, `v`/`vs`, a time or a date is a named event. Named channels go first, generic ones after, each in channel-number order (named channels were sorted A-Z before, so leading-colon placeholders came first).
+- `/api/status` reports the app version (2.2.0).
+
 ## [2.0.0] - 2026-02-25
 
 ### 🚀 Major Features - Dispatcharr Integration
@@ -366,6 +375,7 @@ See [CHANGELOG_v1_2_0.md](Documentation/CHANGELOG_v1_2_0.md) for v1.2.0 changes.
 
 ## Version History
 
+- **2.2.0** (2026-11-12) - Smarter Events Last sorting, Curato Command Center endpoint
 - **2.0.0** (2026-02-25) - Dispatcharr integration, shared collections, dynamic collection creation
 - **1.2.0** (2026-02-23) - Import/export, groups, scheduling, templates
 - **1.1.0** (2025-12-15) - Pattern builder, live preview, source filtering

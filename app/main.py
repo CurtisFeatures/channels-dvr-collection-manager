@@ -352,45 +352,41 @@ class SyncManager:
             
             return (name, num_float, channel_id)
         
+        # --- "Events last": channels showing a named event first, generic placeholders after ---
+        # Provider event lists look like either of these:
+        #   "Crystal Palace v Chelsea @ Oct 25 11:45 AM :Sky Sports UK 04"   -> named (an event is on)
+        #   ":Sky Sports UK 48", "Event 12", "PPV 03", "DAZN UK - 50", "Paramount+ 50 :"  -> generic (nothing named)
+        # A name is split at the last ":" that starts the channel label (not a time like 3:00). The part before it is the
+        # description; an empty description, or one that is itself only "words + number", means a generic channel.
+        label_split = re.compile(r'^(.*?)\s*:(?!\d)\s*([^:]*)$')
+        generic_words = re.compile(r'\b(no event|no events|off air|offline|coming soon|tba|tbc|no programming|not live|event not started)\b', re.IGNORECASE)
+        event_markers = re.compile(r'@|\bvs?\.?\s|\d{1,2}[:.]\d{2}|\b(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\b\.?\s*\d', re.IGNORECASE)
+        words_and_number = re.compile(r'^[\W_]*[A-Za-z][\w+&.\'|/ ]{0,40}?[\s\-#|:]*\d{1,4}[\W_]*$')
+
+        def description(name: str) -> str:
+            name = name.strip().rstrip(':').strip()
+            m = label_split.match(name)
+            return (m.group(1) if m else name).strip()
+
         def is_event_channel(channel_id: str) -> bool:
-            """Check if channel is a generic placeholder (not a real program)"""
-            channel = channel_map.get(channel_id, {})
-            name = channel.get('GuideName', '').strip()
-            
-            # Pattern 1: "Event XX" anywhere in name
-            if re.search(r'\bEvent\s+\d+', name, re.IGNORECASE):
+            """True for a generic placeholder channel (no named event on it), False for a channel with a descriptive name."""
+            name = channel_map.get(channel_id, {}).get('GuideName', '').strip()
+            if not name or generic_words.search(name):
                 return True
-            
-            # Pattern 2: Placeholder patterns (no program name)
-            # Matches: "Paramount+ 50 :", ":Paramount+ 97", "DAZN UK - 50", etc.
-            # These are just provider + number with optional leading colon or trailing colon
-            placeholder_patterns = [
-                r'^:?\s*[\w\s]+(Plus|\+)[\s\-:]+\d+[\s:]*$',  # :Paramount+ 50 or Paramount+ 50 :
-                r'^[\w\s]+[\s\-]+\d+[\s:]*$',  # Provider Name - 50 :
-            ]
-            for pattern in placeholder_patterns:
-                if re.search(pattern, name, re.IGNORECASE):
-                    # But make sure it doesn't have a real program name (contains @ or long text before :)
-                    # Real programs have format: "Program Name @ Date :Paramount+ XX"
-                    if '@' in name or re.search(r'^.{30,}:', name):
-                        return False  # Has program info, not a placeholder
-                    return True
-            
-            return False
-        
-        def extract_event_number(channel_id: str) -> int:
-            """Extract the event number from channel name for proper sorting"""
+            desc = description(name)
+            if not desc:
+                return True                     # ":Sky Sports UK 48"
+            if event_markers.search(desc):
+                return False                    # "Celtics @ Pistons @ Oct 20 7:50 PM"
+            return bool(words_and_number.match(desc))   # "Event 12", "PPV 03", "DAZN UK - 50"
+
+        def number_key(channel_id: str):
             channel = channel_map.get(channel_id, {})
-            name = channel.get('GuideName', '')
-            match = re.search(r'\bEvent\s+(\d+)', name, re.IGNORECASE)
-            if match:
-                return int(match.group(1))
-            # Also try to extract from "Provider+ 50" format
-            match = re.search(r'(Plus|\+)[\s\-:]+(\d+)', name, re.IGNORECASE)
-            if match:
-                return int(match.group(2))
-            return 999999
-        
+            try:
+                return (float(channel.get('GuideNumber') or 999999), channel.get('GuideName', '').lower())
+            except ValueError:
+                return (999999.0, channel.get('GuideName', '').lower())
+
         if sort_order == 'name_asc':
             # Sort alphabetically A-Z
             return sorted(channel_ids, key=lambda cid: channel_map.get(cid, {}).get('GuideName', '').lower())
@@ -420,18 +416,11 @@ class SyncManager:
             return sorted(channel_ids, key=num_key, reverse=True)
         
         elif sort_order == 'events_last':
-            # Non-event channels first (sorted by name), then event channels (sorted by event number)
-            non_events = [cid for cid in channel_ids if not is_event_channel(cid)]
-            events = [cid for cid in channel_ids if is_event_channel(cid)]
-            
-            # Sort non-events alphabetically
-            non_events.sort(key=lambda cid: channel_map.get(cid, {}).get('GuideName', '').lower())
-            
-            # Sort events by their event number
-            events.sort(key=extract_event_number)
-            
-            return non_events + events
-        
+            # Channels with a named event first, then generic placeholders; each part in channel-number order
+            named = [cid for cid in channel_ids if not is_event_channel(cid)]
+            generic = [cid for cid in channel_ids if is_event_channel(cid)]
+            return sorted(named, key=number_key) + sorted(generic, key=number_key)
+
         elif sort_order.startswith('regex:'):
             # Custom regex-based sorting
             pattern = sort_order[6:]  # Remove 'regex:' prefix
@@ -789,7 +778,7 @@ def api_status():
         'last_sync': sync_manager.last_sync.isoformat() if sync_manager.last_sync else None,
         'sync_interval': get_sync_interval(),
         'rules_count': len(rule_manager.rules),
-        'version': '1.0.1'
+        'version': '2.2.0'
     })
 
 
@@ -1805,6 +1794,120 @@ def update_rule_from_dispatcharr(rule_id):
     except Exception as e:
         logger.error(f"Error in update-from-dispatcharr for rule {rule_id}: {e}")
         return jsonify({'error': str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# Curato Command Center: one call to set up a rule for a new channel group.
+# Curato's "New channel group" wizard uses these. A rule made here carries
+# '_curato_key' so Curato can find, update and remove it again.
+# ---------------------------------------------------------------------------
+CURATO_SORTS = ('events_last', 'none', 'name_asc', 'name_desc', 'number_asc', 'number_desc')
+
+
+def _curato_find(key: str) -> Optional[Dict[str, Any]]:
+    return next((r for r in rule_manager.rules if key and r.get('_curato_key') == key), None)
+
+
+def _curato_collection(name: str) -> Dict[str, Any]:
+    """Find a collection by name (case-insensitive) or create it. Returns {slug, name, created}."""
+    for c in api.get_collections():
+        existing = (c.get('name') or c.get('title') or '').strip()
+        if existing.lower() == name.lower():
+            return {'slug': c.get('slug'), 'name': existing, 'created': False}
+    resp = requests.post(f"{DVR_URL}/dvr/collections/channels/new", json={'name': name}, timeout=30)
+    resp.raise_for_status()
+    new = resp.json()
+    logger.info(f"Curato: created collection '{name}' (slug: {new.get('slug')})")
+    return {'slug': new.get('slug'), 'name': name, 'created': True}
+
+
+@app.route('/api/curato/rule', methods=['GET'])
+def curato_get_rule():
+    key = request.args.get('key', '')
+    rule = _curato_find(key)
+    if not rule:
+        return jsonify({'rule': None}), 200
+    col = api.get_collection(rule.get('collection_slug') or '') if rule.get('collection_slug') else {}
+    return jsonify({'rule': rule, 'collection': {'slug': rule.get('collection_slug'), 'name': col.get('name'),
+                                                 'count': len(col.get('items') or [])}})
+
+
+@app.route('/api/curato/rule', methods=['POST'])
+def curato_upsert_rule():
+    """Body: {key, name, collection_name, ranges: ["1000-1049"], source_ids: ["M3U-Name"], sort_order,
+    sync_interval_minutes, group, sync: bool}. Makes the collection if needed, adds or updates the rule, then syncs it."""
+    b = request.get_json(silent=True) or {}
+    key = str(b.get('key') or '').strip()
+    name = str(b.get('name') or '').strip()
+    ranges = [str(r).strip() for r in (b.get('ranges') or []) if re.fullmatch(r'\d+(\.\d+)?(-\d+(\.\d+)?)?', str(r).strip())]
+    if not key or not name or not ranges:
+        return jsonify({'success': False, 'error': 'key, name and at least one number range (like 1000-1049) are needed'}), 400
+    sort_order = b.get('sort_order') if b.get('sort_order') in CURATO_SORTS else 'events_last'
+    try:
+        interval = int(b.get('sync_interval_minutes') or 0) or None
+    except (TypeError, ValueError):
+        interval = None
+    try:
+        col = _curato_collection(str(b.get('collection_name') or name).strip())
+    except Exception as e:
+        logger.error(f"Curato: couldn't get or create the collection: {e}")
+        return jsonify({'success': False, 'error': f"Couldn't make the collection in Channels DVR: {e}"}), 502
+    pattern = ','.join(ranges)
+    existing = _curato_find(key)
+    rule = dict(existing or {})
+    rule.update({
+        'name': name,
+        'group': b.get('group') or rule.get('group') or 'Curato',
+        'collection_slug': col['slug'],
+        'patterns': [pattern],
+        'pattern_metadata': {pattern: {'mode': 'simple', 'type': 'range', 'value': pattern, 'caseSensitive': False}},
+        'match_types': ['number'],
+        'sort_order': sort_order,
+        'enabled': True,
+        'sync_interval_minutes': interval,
+        'include_sources': [str(s) for s in (b.get('source_ids') or []) if s],
+        'exclude_sources': rule.get('exclude_sources', []),
+        'refresh_sources_before_sync': rule.get('refresh_sources_before_sync', False),
+        'refresh_epg_before_sync': rule.get('refresh_epg_before_sync', False),
+        'schedule_enabled': rule.get('schedule_enabled', False),
+        '_curato_key': key,
+        '_curato_collection_created': rule.get('_curato_collection_created', col['created']),
+    })
+    if existing:
+        ok = rule_manager.update_rule(existing['id'], rule)
+    else:
+        ok = rule_manager.add_rule(rule)
+    if not ok:
+        return jsonify({'success': False, 'error': 'Failed to save the rule'}), 500
+    try:
+        setup_rule_schedulers()
+    except Exception as e:                     # the scheduler only exists when run as the main program
+        logger.warning(f"Curato: couldn't reschedule rules: {e}")
+    sync = sync_manager.sync_rule(rule['id']) if b.get('sync') else None
+    return jsonify({'success': True, 'created_rule': not existing, 'rule': rule, 'collection': col, 'sync': sync})
+
+
+@app.route('/api/curato/rule', methods=['DELETE'])
+def curato_delete_rule():
+    key = request.args.get('key', '')
+    rule = _curato_find(key)
+    if not rule:
+        return jsonify({'success': True, 'message': 'No such rule'}), 200
+    rule_manager.delete_rule(rule['id'])
+    try:
+        setup_rule_schedulers()
+    except Exception as e:
+        logger.warning(f"Curato: couldn't reschedule rules: {e}")
+    deleted_collection = False
+    if request.args.get('delete_collection') == '1' and rule.get('_curato_collection_created') and rule.get('collection_slug'):
+        others = [r for r in rule_manager.rules if r.get('collection_slug') == rule['collection_slug']]
+        if not others:
+            try:
+                resp = requests.delete(f"{DVR_URL}/dvr/collections/channels/{rule['collection_slug']}", timeout=30)
+                deleted_collection = resp.status_code < 300
+            except Exception as e:
+                logger.warning(f"Curato: couldn't delete collection {rule['collection_slug']}: {e}")
+    return jsonify({'success': True, 'deleted_collection': deleted_collection})
 
 
 def scheduled_sync():
